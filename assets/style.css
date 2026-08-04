@@ -1,0 +1,64 @@
+html, body, [class*="css"] {
+
+    font-family: 'Segoe UI';
+
+    background-color:#bd4294;
+
+}
+
+
+.block-container{
+
+    padding-top:2rem;
+
+    padding-bottom:2rem;
+
+}
+
+
+section[data-testid="stSidebar"]{
+
+    background:#f7c9ed;
+
+    border-right:1px solid #facefa;
+
+}
+
+
+div.stButton>button{
+
+    width:100%;
+
+    border-radius:12px;
+
+    border:none;
+
+    background:#611f50;
+
+    color:rgb(114, 58, 100);
+
+    height:48px;
+
+    font-size:16px;
+
+}
+
+
+div.stButton>button:hover{
+
+    background:#e636a3;
+
+}
+
+
+.card{
+
+    background:rgb(253, 211, 250);
+
+    border-radius:18px;
+
+    padding:20px;
+
+    box-shadow:0 10px 25px rgba(43, 1, 30, 0.575);
+
+}
