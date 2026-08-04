@@ -1,30 +1,17 @@
 import streamlit as st
-
 from pathlib import Path
-
-
 from config.settings import settings
-
-
 from auth.session import (
     initialize_session,
     is_authenticated
 )
-
-
 from pages.login import login_page
-
-
 from components.sidebar import sidebar
-
-
-
 from pages.dashboard import dashboard
-
 from pages.consultas import consultas
+from dotenv import load_dotenv
 
-from pages.orcamentos import orcamentos
-
+load_dotenv()
 
 
 st.set_page_config(
@@ -93,8 +80,3 @@ elif page == "consultas":
 
     consultas()
 
-
-
-elif page == "orcamentos":
-
-    orcamentos()

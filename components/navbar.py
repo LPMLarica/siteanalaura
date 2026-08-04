@@ -11,4 +11,4 @@ def navbar():
 
     with col2:
 
-        st.write("Olá!")
+        st.write("")

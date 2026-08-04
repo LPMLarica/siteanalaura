@@ -5,11 +5,11 @@ def initialize_session():
 
     defaults = {
 
-        "authenticated": False,
+        "authenticated": "",
 
-        "user": None,
+        "user": "",
 
-        "credentials": None,
+        "credentials": "",
 
         "page": "dashboard"
 
@@ -26,7 +26,7 @@ def initialize_session():
 
 def login_user(
         user,
-        credentials=None
+        credentials
 ):
 
     st.session_state.authenticated = True
@@ -61,6 +61,5 @@ def current_user():
 def is_authenticated():
 
     return st.session_state.get(
-        "authenticated",
-        False
+        "authenticated"
     )

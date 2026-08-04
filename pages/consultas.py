@@ -1,70 +1,52 @@
 import streamlit as st
+from auth.session import current_user
+from components.calendar.calendar import (
+    render_calendar
+)
+from components.forms.consultation_form import (
+    consultation_form
+)
+from services.calendar_service import (
+    get_calendar_events
+)
+from components.calendar.handlers import (
+    handle_calendar_events
+)
 
 
 def consultas():
 
-    st.title("Consultas")
 
-    st.markdown("---")
-
-    aba1, aba2, aba3 = st.tabs(
+    st.title("🌸 Agenda")
+    user = current_user()
+    aba1, aba2 = st.tabs(
 
         [
-
-            "Marcar",
-
-            "Remarcar",
-
-            "Cancelar"
-
+            "📅 Calendário",
+            "➕ Nova Consulta"
         ]
-
     )
 
     with aba1:
 
-        st.text_input(
+        events = get_calendar_events(user["id"])
 
-            "Nome do paciente"
-
+        calendar_state = render_calendar(events)
+        
+        handle_calendar_events(
+            calendar_state,
+            user["id"]
         )
 
-        st.date_input(
-
-            "Data"
-
+        render_calendar(
+            events
         )
 
-        st.time_input(
 
-            "Horário"
-
-        )
-
-        st.text_area(
-
-            "Observação"
-
-        )
-
-        st.button(
-
-            "Salvar Consulta"
-
-        )
 
     with aba2:
 
-        st.info(
-
-            "Será implementado."
-
-        )
-
-    with aba3:
-
-        st.info(
-
-            "Será implementado."
-
+        consultation_form(
+            user["id"],
+            st.session_state.credentials
         )

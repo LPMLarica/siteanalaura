@@ -108,23 +108,27 @@ def login_page():
             "🔐 Entrar com Google",
             use_container_width=True
         ):
+            try:
+                url = authorization_url()
 
-            url = authorization_url()
+                st.markdown(
 
+                    f"""
 
-            st.markdown(
+                    <meta http-equiv="refresh"
 
-                f"""
+                    content="0; url={url}">
 
-                <meta http-equiv="refresh"
+                    """,
 
-                content="0; url={url}">
+                    unsafe_allow_html=True
 
-                """,
-
-                unsafe_allow_html=True
-
-            )
+                )
+            except RuntimeError as e:
+                st.error(str(e))
+                st.info(
+                    "Configure suas credenciais do Google via variáveis de ambiente (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI) "
+                    "ou preencha `credentials/google_credentials.json` com os valores do OAuth 2.0 client.")
 
 
 

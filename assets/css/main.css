@@ -1,0 +1,168 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+html,
+body,
+[class*="css"]{
+
+    font-family:'Poppins',sans-serif;
+
+    background:#b388b3;
+
+    color:#404040;
+
+}
+
+/* Fundo */
+
+.stApp{
+
+    background:#613d53;
+
+}
+
+/* Sidebar */
+
+section[data-testid="stSidebar"]{
+
+    background:#ecc7da;
+
+    border-right:1px solid #f8cbe6;
+
+    width:290px;
+
+}
+
+/* Container */
+
+.block-container{
+
+    padding-top:2rem;
+
+    padding-left:2rem;
+
+    padding-right:2rem;
+
+}
+
+/* Cards */
+
+.dashboard-card{
+
+    background:rgb(241, 199, 225);
+
+    border-radius:20px;
+
+    padding:25px;
+
+    border:1px solid #fccce4;
+
+    box-shadow:0 10px 25px rgba(0,0,0,.05);
+
+    transition:.25s;
+
+}
+
+.dashboard-card:hover{
+
+    transform:translateY(-2px);
+
+    box-shadow:0 15px 35px rgba(0,0,0,.08);
+
+}
+
+/* Botões */
+
+.stButton>button{
+
+    width:100%;
+
+    background:#D98CA8;
+
+    color:rgb(90, 78, 87);
+
+    border:none;
+
+    border-radius:14px;
+
+    height:48px;
+
+    font-weight:600;
+
+    transition:.25s;
+
+}
+
+.stButton>button:hover{
+
+    background:#C97896;
+
+}
+
+/* Inputs */
+
+input{
+
+    border-radius:12px!important;
+
+}
+
+/* TextArea */
+
+textarea{
+
+    border-radius:12px!important;
+
+}
+
+/* Select */
+
+div[data-baseweb="select"]{
+
+    border-radius:12px;
+
+}
+
+/* Data */
+
+[data-testid="stDateInput"]{
+
+    border-radius:12px;
+
+}
+
+/* Hora */
+
+[data-testid="stTimeInput"]{
+
+    border-radius:12px;
+
+}
+/* Sidebar */
+
+[data-testid="stSidebarNav"]{
+
+    display:none;
+
+}
+
+/* Menu */
+
+.nav-link{
+
+    transition:.25s;
+
+}
+
+.nav-link:hover{
+
+    background:#F7DDE7!important;
+
+}
+
+/* Logo */
+
+img{
+
+    border-radius:16px;
+
+}

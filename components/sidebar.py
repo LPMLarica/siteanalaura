@@ -6,7 +6,6 @@ MENU = {
     "Dashboard": "dashboard",
     "Agenda": "consultas",
     "Pacientes": "pacientes",
-    "Orçamentos": "orcamentos",
     "Configurações": "configuracoes"
 }
 
@@ -49,11 +48,10 @@ def sidebar():
 
                 "Pacientes",
 
-                "Orçamentos",
-
                 "Configurações"
 
             ],
+
 
             icons=[
 
@@ -62,8 +60,6 @@ def sidebar():
                 "calendar3",
 
                 "people",
-
-                "cash-stack",
 
                 "gear"
 
