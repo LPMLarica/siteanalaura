@@ -1,15 +1,37 @@
 import streamlit as st
 
+from pathlib import Path
+
+
 from config.settings import settings
 
-from pathlib import Path
+
+from auth.session import (
+    initialize_session,
+    is_authenticated
+)
+
+
+from pages.login import login_page
+
+
+from components.sidebar import sidebar
+
+
+
+from pages.dashboard import dashboard
+
+from pages.consultas import consultas
+
+from pages.orcamentos import orcamentos
+
 
 
 st.set_page_config(
 
     page_title=settings.APP_NAME,
 
-    page_icon="🧠",
+    page_icon="🌸",
 
     layout="wide",
 
@@ -18,36 +40,61 @@ st.set_page_config(
 )
 
 
-css = Path("assets/style.css")
+
+css = Path(
+    "assets/css/main.css"
+)
+
 
 if css.exists():
 
     st.markdown(
 
-        f"<style>{css.read_text(encoding='utf8')}</style>",
+        f"""
+
+        <style>
+
+        {css.read_text()}
+
+        </style>
+
+        """,
 
         unsafe_allow_html=True
 
     )
 
 
-if "logged" not in st.session_state:
 
-    st.session_state.logged = False
-
-
-st.title("🧠 Agenda da Psicóloga")
+initialize_session()
 
 
-st.info(
 
-    "Projeto inicial carregado com sucesso."
-
-)
+if not is_authenticated():
 
 
-st.success(
+    login_page()
 
-    "Estrutura criada."
+    st.stop()
 
-)
+
+
+page = sidebar()
+
+
+
+if page == "dashboard":
+
+    dashboard()
+
+
+
+elif page == "consultas":
+
+    consultas()
+
+
+
+elif page == "orcamentos":
+
+    orcamentos()

@@ -1,85 +1,156 @@
-from sqlalchemy import Column
-from sqlalchemy import Integer
-from sqlalchemy import String
-from sqlalchemy import Date
-from sqlalchemy import Time
-from sqlalchemy import DateTime
-from sqlalchemy import Boolean
-from sqlalchemy import ForeignKey
-from sqlalchemy import Text
-
-from sqlalchemy.orm import relationship
-
+import uuid
 from datetime import datetime
+
+from sqlalchemy import (
+    Boolean,
+    Column,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    Time
+)
+from sqlalchemy.orm import relationship
 
 from database.database import Base
 
 
-class User(Base):
+def generate_uuid():
+    return str(uuid.uuid4())
+
+
+class TimestampMixin:
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow
+    )
+
+
+class User(Base, TimestampMixin):
 
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True)
 
-    google_id = Column(String, unique=True)
+    uuid = Column(String(36), unique=True, default=generate_uuid)
 
-    name = Column(String)
+    google_id = Column(String(200), unique=True)
 
-    email = Column(String, unique=True)
+    name = Column(String(200))
 
-    picture = Column(String)
+    email = Column(String(200), unique=True)
+
+    picture = Column(Text)
 
     active = Column(Boolean, default=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
+    consultations = relationship(
+        "Consultation",
+        back_populates="user"
+    )
 
-    consultations = relationship("Consultation", back_populates="user")
 
-
-class Patient(Base):
+class Patient(Base, TimestampMixin):
 
     __tablename__ = "patients"
 
     id = Column(Integer, primary_key=True)
 
-    full_name = Column(String)
+    uuid = Column(String(36), unique=True, default=generate_uuid)
 
-    phone = Column(String)
+    full_name = Column(String(200))
 
-    email = Column(String)
+    phone = Column(String(30))
+
+    email = Column(String(200))
 
     birth_date = Column(Date)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
+    notes = Column(Text)
 
-    consultations = relationship("Consultation", back_populates="patient")
+    consultations = relationship(
+        "Consultation",
+        back_populates="patient"
+    )
 
 
-class Consultation(Base):
+class Availability(Base):
+
+    __tablename__ = "availability"
+
+    id = Column(Integer, primary_key=True)
+
+    weekday = Column(Integer)
+
+    start_time = Column(Time)
+
+    end_time = Column(Time)
+
+    active = Column(Boolean, default=True)
+
+
+class BlockedDate(Base):
+
+    __tablename__ = "blocked_dates"
+
+    id = Column(Integer, primary_key=True)
+
+    date = Column(Date)
+
+    reason = Column(String(255))
+
+
+class Consultation(Base, TimestampMixin):
 
     __tablename__ = "consultations"
 
     id = Column(Integer, primary_key=True)
 
-    patient_id = Column(Integer, ForeignKey("patients.id"))
+    uuid = Column(String(36), unique=True, default=generate_uuid)
 
-    user_id = Column(Integer, ForeignKey("users.id"))
+    patient_id = Column(
+        Integer,
+        ForeignKey("patients.id")
+    )
+
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id")
+    )
 
     consultation_date = Column(Date)
 
     consultation_time = Column(Time)
 
+    duration = Column(Integer, default=50)
+
+    status = Column(
+        String(30),
+        default="Agendada"
+    )
+
+    confirmed = Column(
+        Boolean,
+        default=False
+    )
+
+    google_event_id = Column(String(255))
+
     observation = Column(Text)
 
-    status = Column(String)
+    patient = relationship(
+        "Patient",
+        back_populates="consultations"
+    )
 
-    google_event_id = Column(String)
-
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    patient = relationship("Patient", back_populates="consultations")
-
-    user = relationship("User", back_populates="consultations")
+    user = relationship(
+        "User",
+        back_populates="consultations"
+    )
 
 
 class Configuration(Base):
@@ -88,8 +159,8 @@ class Configuration(Base):
 
     id = Column(Integer, primary_key=True)
 
-    timezone = Column(String)
+    timezone = Column(String(100))
 
     notification_minutes = Column(Integer)
 
-    theme = Column(String)
+    theme = Column(String(50))

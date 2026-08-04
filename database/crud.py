@@ -3,83 +3,162 @@ from database.database import SessionLocal
 from database.models import Patient
 from database.models import Consultation
 
+from database.database import SessionLocal
 
-def create_patient(name, phone, email):
-
-    db = SessionLocal()
-
-    patient = Patient(
-        full_name=name,
-        phone=phone,
-        email=email
-    )
-
-    db.add(patient)
-
-    db.commit()
-
-    db.refresh(patient)
-
-    db.close()
-
-    return patient
+from database.models import (
+    Consultation,
+    Patient
+)
 
 
-def get_patients():
+class DatabaseManager:
 
-    db = SessionLocal()
+    def __init__(self):
 
-    patients = db.query(Patient).all()
+        self.db = SessionLocal()
 
-    db.close()
+    def close(self):
 
-    return patients
+        self.db.close()
 
+    #########################################
 
-def create_consultation(
+    def create_patient(
+
+        self,
+
+        name,
+
+        phone,
+
+        email,
+
+        birth_date=None,
+
+        notes=None
+
+    ):
+
+        patient = Patient(
+
+            full_name=name,
+
+            phone=phone,
+
+            email=email,
+
+            birth_date=birth_date,
+
+            notes=notes
+
+        )
+
+        self.db.add(patient)
+
+        self.db.commit()
+
+        self.db.refresh(patient)
+
+        return patient
+
+    #########################################
+
+    def list_patients(self):
+
+        return (
+
+            self.db
+
+            .query(Patient)
+
+            .order_by(Patient.full_name)
+
+            .all()
+
+        )
+
+    #########################################
+
+    def get_patient(self, patient_id):
+
+        return (
+
+            self.db
+
+            .query(Patient)
+
+            .filter(
+
+                Patient.id == patient_id
+
+            )
+
+            .first()
+
+        )
+
+    #########################################
+
+    def create_consultation(
+
+        self,
+
         patient_id,
+
         user_id,
+
         date,
+
         hour,
-        observation,
-        status="Agendada"
-):
 
-    db = SessionLocal()
+        duration,
 
-    consultation = Consultation(
+        observation
 
-        patient_id=patient_id,
+    ):
 
-        user_id=user_id,
+        consultation = Consultation(
 
-        consultation_date=date,
+            patient_id=patient_id,
 
-        consultation_time=hour,
+            user_id=user_id,
 
-        observation=observation,
+            consultation_date=date,
 
-        status=status
+            consultation_time=hour,
 
-    )
+            duration=duration,
 
-    db.add(consultation)
+            observation=observation
 
-    db.commit()
+        )
 
-    db.refresh(consultation)
+        self.db.add(consultation)
 
-    db.close()
+        self.db.commit()
 
-    return consultation
+        self.db.refresh(consultation)
 
+        return consultation
 
-def list_consultations():
+    #########################################
 
-    db = SessionLocal()
+    def list_consultations(self):
 
-    data = db.query(Consultation).all()
+        return (
 
-    db.close()
+            self.db
 
-    return data
+            .query(Consultation)
+
+            .order_by(
+
+                Consultation.consultation_date,
+
+                Consultation.consultation_time
+
+            )
+
+            .all()
+
+        )
