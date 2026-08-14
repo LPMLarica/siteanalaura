@@ -1,11 +1,14 @@
-from database.database import SessionLocal
+import dados
+from dados import SessionLocal
+from dados.models import ClinicalRecord
+from dados.models import User
+from dados.models import AuditLog
+from dados.models import Configuration
+from dados.models import Patient
+from dados.models import Consultation
+from dados.models import BlockedDate
 
-from database.models import Patient
-from database.models import Consultation
-
-from database.database import SessionLocal
-
-from database.models import (
+from dados.models import (
     Consultation,
     Patient
 )
@@ -15,7 +18,7 @@ class DatabaseManager:
 
     def __init__(self):
 
-        self.db = SessionLocal()
+        self.db = dados.SessionLocal()
 
     def close(self):
 
@@ -162,3 +165,88 @@ class DatabaseManager:
             .all()
 
         )
+
+    #########################################
+
+    def get_consultation(self, consultation_id):
+
+        return (
+
+            self.db
+
+            .query(Consultation)
+
+            .filter(
+
+                Consultation.id == consultation_id
+
+            )
+
+            .first()
+
+        )
+
+    #########################################
+
+
+    def update_consultation(self, consultation_id, data):
+
+        consultation = self.get_consultation(consultation_id)
+
+        if consultation:
+
+            for key, value in data.items():
+
+                setattr(consultation, key, value)
+
+            self.db.commit()
+
+            self.db.refresh(consultation)
+
+        return consultation
+
+    #########################################
+
+    def delete_consultation(self, consultation_id):
+
+        consultation = self.get_consultation(consultation_id)
+
+        if consultation:
+
+            self.db.delete(consultation)
+
+            self.db.commit()
+
+        return consultation
+
+    #########################################
+
+
+
+    def close(self):
+
+        self.db.close()
+
+        return
+
+    #########################################
+
+    def __del__(self):
+
+        self.close()
+
+        return
+
+    #########################################
+
+    def __enter__(self):
+
+        return self
+
+    #########################################
+
+    def __exit__(self, exc_type, exc_value, traceback):
+
+        self.close()
+
+        return

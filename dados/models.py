@@ -14,8 +14,8 @@ from sqlalchemy import (
     Time
 )
 from sqlalchemy.orm import relationship
-import database.database
-from database.database import Base
+import dados.database
+from dados.database import Base
 
 
 def generate_uuid():
@@ -30,7 +30,7 @@ class TimestampMixin:
         onupdate=datetime.utcnow
     )
 
-class Budget(database.database.Base):
+class Budget(dados.database.Base):
 
     __tablename__ = "budgets"
 
@@ -94,7 +94,7 @@ class Budget(database.database.Base):
         "Patient"
     )
 
-class Payment(database.database.Base):
+class Payment(dados.database.Base):
 
     __tablename__ = "payments"
 
@@ -127,7 +127,7 @@ class Payment(database.database.Base):
 
     receipt_number = Column(String(100))
 
-class WorkingHours(database.database.Base):
+class WorkingHours(dados.database.Base):
 
     __tablename__ = "working_hours"
 
@@ -161,7 +161,7 @@ class WorkingHours(database.database.Base):
         default=True
     )
 
-class BlockedSchedule(database.database.Base):
+class BlockedSchedule(dados.database.Base):
 
     __tablename__ = "blocked_schedule"
 
@@ -189,7 +189,7 @@ class BlockedSchedule(database.database.Base):
         default=False
     )
 
-class User(database.database.Base, TimestampMixin):
+class User(dados.database.Base, TimestampMixin):
 
     __tablename__ = "users"
 
@@ -207,7 +207,7 @@ class User(database.database.Base, TimestampMixin):
     )
 
 
-class Patient(database.database.Base):
+class Patient(dados.database.Base):
 
     __tablename__ = "patients"
 
@@ -274,7 +274,7 @@ class Patient(database.database.Base):
         back_populates="patient"
     )
 
-class AuditLog(database.database.Base):
+class AuditLog(dados.database.Base):
 
     __tablename__ = "audit_logs"
 
@@ -303,7 +303,7 @@ class AuditLog(database.database.Base):
         default=datetime.utcnow
     )
 
-class Availability(database.database.Base):
+class Availability(dados.database.Base):
 
     __tablename__ = "availability"
 
@@ -314,7 +314,7 @@ class Availability(database.database.Base):
     active = Column(Boolean, default=True)
 
 
-class BlockedDate(database.database.Base):
+class BlockedDate(dados.database.Base):
 
     __tablename__ = "blocked_dates"
 
@@ -323,7 +323,7 @@ class BlockedDate(database.database.Base):
     reason = Column(String(255))
 
 
-class Consultation(database.database.Base):
+class Consultation(dados.database.Base):
 
     __tablename__ = "consultations"
 
@@ -415,7 +415,7 @@ class Consultation(database.database.Base):
 
 
 
-class ClinicalRecord(database.database.Base):
+class ClinicalRecord(dados.database.Base):
 
     __tablename__ = "clinical_records"
 
@@ -460,7 +460,7 @@ class ClinicalRecord(database.database.Base):
         "User"
     )
 
-class Configuration(database.database.Base):
+class Configuration(dados.database.Base):
 
     __tablename__ = "configurations"
 

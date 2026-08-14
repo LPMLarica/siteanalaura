@@ -1,6 +1,6 @@
-from database.database import SessionLocal
+from dados.database import SessionLocal
 from security.encription import encrypt_text, decrypt_text
-from database.models import ClinicalRecord
+from dados.models import ClinicalRecord
 
 
 

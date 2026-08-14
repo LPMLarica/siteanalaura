@@ -1,6 +1,6 @@
-from database.database import SessionLocal
+from dados.database import SessionLocal
 
-from database.models import User
+from dados.models import User
 
 
 

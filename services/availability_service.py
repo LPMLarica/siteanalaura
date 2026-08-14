@@ -1,6 +1,6 @@
 from datetime import datetime
-from database.database import SessionLocal
-from database.models import (
+from dados.database import SessionLocal
+from dados.models import (
     WorkingHours,
     BlockedSchedule,
     Consultation

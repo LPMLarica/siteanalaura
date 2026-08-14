@@ -1,10 +1,21 @@
-from database.database import SessionLocal
-from database.models import Consultation
+import datetime
+import pytz
+import json
+import requests
+import google.oauth2.credentials
+import google.auth.transport.requests
+from dados.database import SessionLocal
+from dados.models import Consultation
+import os
+import sys
 from services.schedule_service import check_schedule_conflict
 from services.google_calendar_service import (
     create_google_event
 )
 
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
 
 def create_consultation(data, credentials):
 
@@ -26,16 +37,24 @@ def create_consultation(data, credentials):
     db.add(consultation)
     db.commit()
     db.refresh(consultation)
-    db.close()
 
+    # Sincroniza com o Google Calendar (se o usuário conectou a conta Google)
+    # antes de fechar a sessão, para o ID do evento ser persistido corretamente.
     if credentials:
-        client_id = create_google_event(
-            credentials,
-            consultation
-        )
-        consultation.google_event_id = client_id
+        try:
+            event_id = create_google_event(
+                credentials,
+                consultation
+            )
+            consultation.google_event_id = event_id
+            db.commit()
+            db.refresh(consultation)
+        except Exception:
+            # Não impede o agendamento local caso a sincronização falhe
+            # (ex: token expirado, sem internet, permissão revogada).
+            db.rollback()
 
-    db.commit()
+    db.close()
 
     return consultation
 

@@ -1,5 +1,5 @@
-from database.database import SessionLocal
-from database.models import Consultation
+from dados.database import SessionLocal
+from dados.models import Consultation
 from services.availability_service import (
     available_slot
 )

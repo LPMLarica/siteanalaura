@@ -1,5 +1,5 @@
-from database.database import SessionLocal
-from database.models import Patient
+from dados.database import SessionLocal
+from dados.models import Patient
 
 
 def create_patient(data):

@@ -1,5 +1,5 @@
-from database.database import SessionLocal
-from database.models import AuditLog
+from dados.database import SessionLocal
+from dados.models import AuditLog
 
 
 def register_action(user_id,action,target):
