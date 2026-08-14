@@ -16,6 +16,8 @@ google-auth-oauthlib==1.2.2
 
 google-api-python-client==2.179.0
 
+firebase-admin==6.1.0
+
 bcrypt==4.3.0
 
 Pillow==11.3.0

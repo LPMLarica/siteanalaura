@@ -12,6 +12,11 @@ class Settings:
     APP_NAME = os.getenv("APP_NAME", "Agenda Psicóloga")
 
     DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///storage/app.db")
+    # Choose backend: 'sqlite' (default) or 'firebase'
+    DATABASE_BACKEND = os.getenv("DATABASE_BACKEND", "sqlite")
+
+    # Path to Firebase service account JSON (optional). Prefer FIREBASE_CREDENTIALS.
+    FIREBASE_CREDENTIALS = os.getenv("FIREBASE_CREDENTIALS") or os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-me")
 

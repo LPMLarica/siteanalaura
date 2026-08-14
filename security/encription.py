@@ -2,7 +2,7 @@ import os
 from cryptography.fernet import Fernet
 
 KEY = os.getenv(
-    "SECRET_KEY_CLINICAL"
+    "SECRET_KEY"
 )
 
 if KEY:
