@@ -5,28 +5,28 @@ def initialize_session():
 
     defaults = {
 
-        "authenticated": "",
+        "authenticated": False,
 
-        "user": "",
+        "user": None,
 
-        "credentials": "",
+        "credentials": None,
 
-        "page": "dashboard"
+        "page": "dashboard",
+
+        "history": []
 
     }
 
-
-    for key,value in defaults.items():
+    for key, value in defaults.items():
 
         if key not in st.session_state:
 
             st.session_state[key] = value
 
 
-
 def login_user(
-        user,
-        credentials
+    user,
+    credentials
 ):
 
     st.session_state.authenticated = True
@@ -35,19 +35,41 @@ def login_user(
 
     st.session_state.credentials = credentials
 
+    st.session_state.page = "dashboard"
+
+    if "history" not in st.session_state:
+
+        st.session_state.history = []
+
+    st.session_state.history = [
+        "dashboard"
+    ]
 
 
 def logout():
 
-    for key in list(
-        st.session_state.keys()
-    ):
+    keys_to_remove = [
 
-        del st.session_state[key]
+        "authenticated",
 
+        "user",
+
+        "credentials",
+
+        "page",
+
+        "history"
+
+    ]
+
+    for key in keys_to_remove:
+
+        st.session_state.pop(
+            key,
+            None
+        )
 
     st.rerun()
-
 
 
 def current_user():
@@ -57,9 +79,18 @@ def current_user():
     )
 
 
+def current_credentials():
+
+    return st.session_state.get(
+        "credentials"
+    )
+
 
 def is_authenticated():
 
-    return st.session_state.get(
-        "authenticated"
+    return bool(
+        st.session_state.get(
+            "authenticated",
+            False
+        )
     )

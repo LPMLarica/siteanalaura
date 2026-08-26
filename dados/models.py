@@ -193,13 +193,44 @@ class User(dados.database.Base, TimestampMixin):
 
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True)
-    uuid = Column(String(36), unique=True, default=generate_uuid)
-    client_id = Column(String(200), unique=True)
-    name = Column(String(200))
-    email = Column(String(200), unique=True)
-    picture = Column(Text)
-    active = Column(Boolean, default=True)
+    id = Column(
+        Integer,
+        primary_key=True
+    )
+
+    uuid = Column(
+        String(36),
+        unique=True,
+        nullable=False,
+        default=generate_uuid
+    )
+
+    google_id = Column(
+        String(200),
+        unique=True,
+        nullable=False
+    )
+
+    name = Column(
+        String(200),
+        nullable=False
+    )
+
+    email = Column(
+        String(200),
+        unique=True,
+        nullable=False
+    )
+
+    picture = Column(
+        Text
+    )
+
+    active = Column(
+        Boolean,
+        default=True,
+        nullable=False
+    )
 
     consultations = relationship(
         "Consultation",

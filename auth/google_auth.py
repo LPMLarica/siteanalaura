@@ -1,14 +1,10 @@
 from google_auth_oauthlib.flow import Flow
 
-import os
-
-
 from config.google_config import (
     GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET,
     GOOGLE_REDIRECT_URI
 )
-
 
 
 SCOPES = [
@@ -26,32 +22,56 @@ SCOPES = [
 ]
 
 
+def validate_configuration():
+
+    if not GOOGLE_CLIENT_ID:
+
+        raise RuntimeError(
+            "GOOGLE_CLIENT_ID não configurado."
+        )
+
+    if not GOOGLE_CLIENT_SECRET:
+
+        raise RuntimeError(
+            "GOOGLE_CLIENT_SECRET não configurado."
+        )
+
+    if not GOOGLE_REDIRECT_URI:
+
+        raise RuntimeError(
+            "GOOGLE_REDIRECT_URI não configurado."
+        )
+
 
 def create_flow():
 
+    validate_configuration()
 
     client_config = {
 
+        "web": {
 
-        "web":
+            "client_id":
+                GOOGLE_CLIENT_ID,
 
-        {
+            "client_secret":
+                GOOGLE_CLIENT_SECRET,
 
-        "client_id":GOOGLE_CLIENT_ID,
-        "client_secret":GOOGLE_CLIENT_SECRET,
-        "response_type": "code",
-        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-        "token_uri":"https://oauth2.googleapis.com/token",
-        "redirect_uris":
-        [
-            GOOGLE_REDIRECT_URI
-        ]
+            "auth_uri":
+                "https://accounts.google.com/o/oauth2/auth",
+
+            "token_uri":
+                "https://oauth2.googleapis.com/token",
+
+            "redirect_uris": [
+
+                GOOGLE_REDIRECT_URI
+
+            ]
 
         }
 
     }
-
-
 
     flow = Flow.from_client_config(
 
@@ -61,37 +81,51 @@ def create_flow():
 
     )
 
-
-    flow.redirect_uri = GOOGLE_REDIRECT_URI
-
+    flow.redirect_uri = (
+        GOOGLE_REDIRECT_URI
+    )
 
     return flow
 
 
 def authorization_url():
-    if not (GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET):
-        raise RuntimeError(
-            "Google OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in environment or fill credentials/google_credentials.json."
-        )
 
     flow = create_flow()
-    auth_url =flow.authorization_url(
-        access_type="offline",
-        include_granted_scopes="true",
-        prompt="consent"
+
+    auth_url, state = (
+        flow.authorization_url(
+
+            access_type="offline",
+
+            include_granted_scopes="true",
+
+            prompt="consent"
+
+        )
     )
-    return auth_url
+
+    return auth_url, state
 
 
-def exchange_code(code: str):
-    if not (GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET):
-        raise RuntimeError(
-            "Google OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in environment or fill credentials/google_credentials.json."
+def exchange_code(
+    code,
+    state=None
+):
+
+    if not code:
+
+        raise ValueError(
+            "Código de autorização não fornecido."
         )
 
     flow = create_flow()
-    # The Flow object needs the redirect_uri to match the one used in the auth request
-    flow.redirect_uri = GOOGLE_REDIRECT_URI
-    # Exchange authorization code for credentials
-    flow.fetch_token(code=code)
+
+    if state:
+
+        flow.state = state
+
+    flow.fetch_token(
+        code=code
+    )
+
     return flow.credentials
