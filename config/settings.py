@@ -1,9 +1,10 @@
 import os
+import streamlit as st
 
-from dotenv import load_dotenv
+#from dotenv import load_dotenv
 
 
-load_dotenv()
+#load_dotenv()
 
 
 class Settings:
@@ -30,23 +31,13 @@ class Settings:
         )
     )
 
-    SECRET_KEY = os.getenv(
-        "SECRET_KEY",
-        "dev-secret-key-change-me"
-    )
+    SECRET_KEY = st.secrets["cookie_secret"]
 
-    GOOGLE_CLIENT_ID = os.getenv(
-        "GOOGLE_CLIENT_ID"
-    )
+    GOOGLE_CLIENT_ID = st.secrets["client_id"]
 
-    GOOGLE_CLIENT_SECRET = os.getenv(
-        "GOOGLE_CLIENT_SECRET"
-    )
+    GOOGLE_CLIENT_SECRET = st.secrets["client_secret"]
 
-    GOOGLE_REDIRECT_URI = os.getenv(
-        "GOOGLE_REDIRECT_URI",
-        "http://localhost:8501"
-    )
+    GOOGLE_REDIRECT_URI = st.secrets["redirect_uri"]
 
     TIMEZONE = os.getenv(
         "TIMEZONE",

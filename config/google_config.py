@@ -2,6 +2,7 @@ import json
 import os
 
 from pathlib import Path
+from turtle import st
 
 from dotenv import load_dotenv
 
@@ -11,31 +12,29 @@ PROJECT_ROOT = Path(
 ).resolve().parents[1]
 
 
-ENV_FILE = PROJECT_ROOT / ".env"
+#ENV_FILE = PROJECT_ROOT / ".env"
 
 
-load_dotenv(
-    dotenv_path=ENV_FILE
-)
+#load_dotenv(
+    #dotenv_path=ENV_FILE
+#)
 
 
-GOOGLE_CLIENT_ID = os.getenv(
-    "GOOGLE_CLIENT_ID"
-)
+GOOGLE_CLIENT_ID = st.secrets["client_id"]
 
-GOOGLE_CLIENT_SECRET = os.getenv(
-    "GOOGLE_CLIENT_SECRET"
-)
+SECRET_KEY = st.secrets["cookie_secret"]
 
-GOOGLE_REDIRECT_URI = os.getenv(
-    "GOOGLE_REDIRECT_URI"
-)
+GOOGLE_CLIENT_SECRET = st.secrets["client_secret"]
+
+GOOGLE_REDIRECT_URI = st.secrets["redirect_uri"]
 
 
 CREDENTIALS_FILE = (
     PROJECT_ROOT
-    / "credentials"
-    / "google_credentials.json"
+    / ".streamlit"
+    / "secrets.toml"
+    #/ "credentials"
+    #/ "google_credentials.json"
 )
 
 
@@ -80,6 +79,13 @@ if (
                 )
             )
 
+            SECRET_KEY = (
+                SECRET_KEY
+                or _clean(
+                    web.get("client_secret")
+                )
+            )
+
             GOOGLE_CLIENT_SECRET = (
                 GOOGLE_CLIENT_SECRET
                 or _clean(
@@ -112,9 +118,7 @@ if (
 
 if not GOOGLE_REDIRECT_URI:
 
-    GOOGLE_REDIRECT_URI = (
-        "http://localhost:8501"
-    )
+    GOOGLE_REDIRECT_URI = ( st.secrets.get("redirect_uri") )
 
 
 if GOOGLE_REDIRECT_URI:
