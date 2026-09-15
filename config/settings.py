@@ -5,10 +5,6 @@ import os
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-
-connection = psycopg2.connect(DATABASE_URL)
-
 
 class Settings:
 
@@ -23,6 +19,7 @@ class Settings:
     # não recomendado em produção, já que os dados não persistem entre
     # deploys em muitos ambientes de hospedagem).
     DATABASE_URL = os.getenv("DATABASE_URL")
+    connection = psycopg2.connect(DATABASE_URL)
 
     # URL e chave "anon" do projeto Supabase (Project Settings -> API),
     # usadas apenas para autenticação (login/cadastro) via Supabase

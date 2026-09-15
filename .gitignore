@@ -6,3 +6,4 @@ storage/*.db
 storage/*.sqlite
 storage/*.sqlite3
 .streamlit/secrets.toml
+node_modules/
