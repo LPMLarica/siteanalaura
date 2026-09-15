@@ -205,8 +205,11 @@ class User(dados.database.Base, TimestampMixin):
         default=generate_uuid
     )
 
-    google_id = Column(
-        String(200),
+    # ID do usuário no Supabase Auth (auth.users.id) — correlaciona a
+    # conta de login (Supabase) com os dados locais (pacientes,
+    # consultas, prontuários, pagamentos) deste usuário.
+    supabase_uid = Column(
+        String(64),
         unique=True,
         nullable=False
     )
@@ -220,10 +223,6 @@ class User(dados.database.Base, TimestampMixin):
         String(200),
         unique=True,
         nullable=False
-    )
-
-    picture = Column(
-        Text
     )
 
     active = Column(
@@ -425,11 +424,6 @@ class Consultation(dados.database.Base):
     confirmed = Column(
         Boolean,
         default=False
-    )
-
-
-    google_event_id = Column(
-        String(255)
     )
 
 

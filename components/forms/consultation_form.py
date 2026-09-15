@@ -27,7 +27,7 @@ COLORS = {
 
 
 
-def consultation_form(user_id, credentials):
+def consultation_form(user_id):
 
     st.subheader("🌸 Nova Consulta")
 
@@ -109,8 +109,7 @@ def consultation_form(user_id, credentials):
         }
 
         create_consultation(
-            data,
-            credentials
+            data
         )
 
         st.success("Consulta criada!")

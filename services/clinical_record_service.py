@@ -3,7 +3,6 @@ from security.encription import encrypt_text, decrypt_text
 from dados.models import ClinicalRecord
 
 
-
 def create_record(data):
 
     db = SessionLocal()
@@ -23,6 +22,7 @@ def create_record(data):
 
     return record
 
+
 def decrypt_records(records):
 
     for record in records:
@@ -30,9 +30,12 @@ def decrypt_records(records):
             record.content
         )
 
-    return decrypt_records(records)
+    return records
 
-def get_patient_records(patient_id):
+
+def get_patient_records(patient_id, user_id):
+    """Busca os registros clínicos de um paciente, restrito ao usuário
+    dono deles, e já descriptografados para exibição."""
 
     db = SessionLocal()
 
@@ -42,7 +45,10 @@ def get_patient_records(patient_id):
             ClinicalRecord
         )
 
-        .filter(ClinicalRecord.patient_id==patient_id)
+        .filter(
+            ClinicalRecord.patient_id == patient_id,
+            ClinicalRecord.user_id == user_id
+        )
 
         .order_by(
             ClinicalRecord.created_at.desc()
@@ -53,11 +59,11 @@ def get_patient_records(patient_id):
 
     db.close()
 
-    return records
+    return decrypt_records(records)
 
 
-
-def delete_record(record_id):
+def delete_record(record_id, user_id):
+    """Remove um registro clínico, restrito ao usuário dono dele."""
 
     db = SessionLocal()
 
@@ -67,8 +73,8 @@ def delete_record(record_id):
         )
 
         .filter(
-
-            ClinicalRecord.id == record_id
+            ClinicalRecord.id == record_id,
+            ClinicalRecord.user_id == user_id
         )
 
         .first()
@@ -78,5 +84,6 @@ def delete_record(record_id):
         db.delete(record)
         db.commit()
 
-
     db.close()
+
+    return record is not None

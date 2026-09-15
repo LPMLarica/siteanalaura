@@ -4,33 +4,33 @@ from dados.models import User
 
 def get_or_create_user(data):
     """
-    Busca um usuário pelo Google ID ou e-mail.
-    Se não existir, cria um novo usuário.
+    Busca um usuário local pelo ID do Supabase Auth (supabase_uid) ou
+    pelo e-mail. Se não existir, cria um novo usuário local
+    correlacionado à conta do Supabase.
 
     Espera receber um dicionário contendo:
 
-        google_id
+        supabase_uid
         name
         email
-        picture
     """
 
     if not data:
         raise ValueError(
-            "Dados do usuário Google não foram fornecidos."
+            "Dados do usuário não foram fornecidos."
         )
 
-    google_id = data.get("google_id")
+    supabase_uid = data.get("supabase_uid")
     email = data.get("email")
 
-    if not google_id:
+    if not supabase_uid:
         raise ValueError(
-            "Google ID não foi encontrado na autenticação."
+            "ID do usuário (Supabase) não foi encontrado."
         )
 
     if not email:
         raise ValueError(
-            "E-mail do usuário Google não foi encontrado."
+            "E-mail do usuário não foi encontrado."
         )
 
     db = SessionLocal()
@@ -40,7 +40,7 @@ def get_or_create_user(data):
         user = (
             db.query(User)
             .filter(
-                User.google_id == google_id
+                User.supabase_uid == supabase_uid
             )
             .first()
         )
@@ -49,11 +49,6 @@ def get_or_create_user(data):
             user.name = data.get(
                 "name",
                 user.name
-            )
-
-            user.picture = data.get(
-                "picture",
-                user.picture
             )
 
             user.email = email
@@ -64,8 +59,9 @@ def get_or_create_user(data):
 
             return user
 
-        # Fallback:
-        # pode existir um usuário antigo com o mesmo e-mail
+        # Fallback: pode existir um usuário local antigo com o mesmo
+        # e-mail (ex.: uma conta criada antes da migração para o
+        # Supabase Auth) — correlaciona em vez de duplicar.
         user = (
             db.query(User)
             .filter(
@@ -76,16 +72,11 @@ def get_or_create_user(data):
 
         if user:
 
-            user.google_id = google_id
+            user.supabase_uid = supabase_uid
 
             user.name = data.get(
                 "name",
                 user.name
-            )
-
-            user.picture = data.get(
-                "picture",
-                user.picture
             )
 
             db.commit()
@@ -95,15 +86,12 @@ def get_or_create_user(data):
             return user
 
         user = User(
-            google_id=google_id,
+            supabase_uid=supabase_uid,
             name=data.get(
                 "name",
                 "Usuário"
             ),
             email=email,
-            picture=data.get(
-                "picture"
-            ),
             active=True
         )
 

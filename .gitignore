@@ -1,4 +1,8 @@
 .env
 .venv
-C:\Users\lari\Documents\GitHub\siteanalaura\credentials\google_credentials.json
-.streamlit\secrets.toml
+__pycache__/
+*.pyc
+storage/*.db
+storage/*.sqlite
+storage/*.sqlite3
+.streamlit/secrets.toml
