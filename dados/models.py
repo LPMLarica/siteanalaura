@@ -14,8 +14,8 @@ from sqlalchemy import (
     Time
 )
 from sqlalchemy.orm import relationship
-import dados.database
-from dados.database import Base
+import database
+from database import Base
 
 
 def generate_uuid():
@@ -30,7 +30,7 @@ class TimestampMixin:
         onupdate=datetime.utcnow
     )
 
-class Budget(dados.database.Base):
+class Budget(database.Base):
 
     __tablename__ = "budgets"
 
@@ -94,7 +94,7 @@ class Budget(dados.database.Base):
         "Patient"
     )
 
-class Payment(dados.database.Base):
+class Payment(database.Base):
 
     __tablename__ = "payments"
 
@@ -127,7 +127,7 @@ class Payment(dados.database.Base):
 
     receipt_number = Column(String(100))
 
-class WorkingHours(dados.database.Base):
+class WorkingHours(database.Base):
 
     __tablename__ = "working_hours"
 
@@ -161,7 +161,7 @@ class WorkingHours(dados.database.Base):
         default=True
     )
 
-class BlockedSchedule(dados.database.Base):
+class BlockedSchedule(database.Base):
 
     __tablename__ = "blocked_schedule"
 
@@ -189,7 +189,7 @@ class BlockedSchedule(dados.database.Base):
         default=False
     )
 
-class User(dados.database.Base, TimestampMixin):
+class User(database.Base, TimestampMixin):
 
     __tablename__ = "users"
 
@@ -237,7 +237,7 @@ class User(dados.database.Base, TimestampMixin):
     )
 
 
-class Patient(dados.database.Base):
+class Patient(database.Base):
 
     __tablename__ = "patients"
 
@@ -304,7 +304,7 @@ class Patient(dados.database.Base):
         back_populates="patient"
     )
 
-class AuditLog(dados.database.Base):
+class AuditLog(database.Base):
 
     __tablename__ = "audit_logs"
 
@@ -333,7 +333,7 @@ class AuditLog(dados.database.Base):
         default=datetime.utcnow
     )
 
-class Availability(dados.database.Base):
+class Availability(database.Base):
 
     __tablename__ = "availability"
 
@@ -344,7 +344,7 @@ class Availability(dados.database.Base):
     active = Column(Boolean, default=True)
 
 
-class BlockedDate(dados.database.Base):
+class BlockedDate(database.Base):
 
     __tablename__ = "blocked_dates"
 
@@ -353,7 +353,7 @@ class BlockedDate(dados.database.Base):
     reason = Column(String(255))
 
 
-class Consultation(dados.database.Base):
+class Consultation(database.Base):
 
     __tablename__ = "consultations"
 
@@ -440,7 +440,7 @@ class Consultation(dados.database.Base):
 
 
 
-class ClinicalRecord(dados.database.Base):
+class ClinicalRecord(database.Base):
 
     __tablename__ = "clinical_records"
 
@@ -485,7 +485,7 @@ class ClinicalRecord(dados.database.Base):
         "User"
     )
 
-class Configuration(dados.database.Base):
+class Configuration(database.Base):
 
     __tablename__ = "configurations"
 
