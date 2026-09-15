@@ -9,7 +9,7 @@ correlacionar pacientes/consultas/prontuários/pagamentos a quem os
 criou (services/user_service.get_or_create_user).
 """
 
-from auth.supabase_client import get_supabase_client
+from supabase_client import get_supabase_client
 
 
 def _user_from_supabase(user, fallback_name=None):

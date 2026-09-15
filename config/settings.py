@@ -10,7 +10,6 @@ class Settings:
 
     APP_NAME = os.getenv(
         "APP_NAME",
-        "Agenda Psicóloga"
     )
 
     # Connection string do Postgres do seu projeto Supabase (Project
@@ -28,10 +27,12 @@ class Settings:
     SUPABASE_URL = os.getenv(
         "SUPABASE_URL"
     )
+    url = psycopg2.connect(SUPABASE_URL)
 
     SUPABASE_KEY = os.getenv(
         "SUPABASE_KEY"
     )
+    key = psycopg2.connect(SUPABASE_KEY)
 
     # Sem fallback hardcoded de propósito: uma chave padrão conhecida
     # anularia a criptografia dos prontuários que depende dela.
@@ -40,6 +41,7 @@ class Settings:
     SECRET_KEY = os.getenv(
         "SECRET_KEY"
     )
+    
 
     TIMEZONE = os.getenv(
         "TIMEZONE",
