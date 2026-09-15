@@ -25,9 +25,15 @@ from components.patients.patient_history import (
 
 )
 
+from services.payment_service import (
+
+    get_patient_payment_summary
+
+)
 
 
-def patient_profile(patient):
+
+def patient_profile(patient, user_id):
 
     st.title(f"👩 {patient.full_name}")
 
@@ -70,6 +76,26 @@ def patient_profile(patient):
     )
 
     patient_metrics(total,next_consultation)
+
+    st.divider()
+
+    st.subheader("💰 Pagamentos")
+
+    summary = get_patient_payment_summary(
+        patient.id,
+        user_id
+    )
+
+    col_pago, col_pendente, col_qtd = st.columns(3)
+
+    with col_pago:
+        st.metric("Total pago", f"R$ {summary['total_pago']:.2f}")
+
+    with col_pendente:
+        st.metric("Total pendente", f"R$ {summary['total_pendente']:.2f}")
+
+    with col_qtd:
+        st.metric("Pagamentos registrados", summary["quantidade"])
 
     st.divider()
 

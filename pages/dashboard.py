@@ -1,11 +1,17 @@
 import streamlit as st
 
+from auth.session import current_user
 from components.cards import dashboard_card
+from services.dashboard_service import get_dashboard_stats
 
 
 def dashboard():
 
     st.title("🌸 Dashboard")
+
+    user = current_user()
+
+    stats = get_dashboard_stats(user["id"])
 
     st.write("")
 
@@ -14,46 +20,47 @@ def dashboard():
     with c1:
         dashboard_card(
             "Consultas Hoje",
-            "0",
+            str(stats["consultas_hoje"]),
             "🗓️"
         )
 
     with c2:
         dashboard_card(
             "Consultas Semana",
-            "0",
+            str(stats["consultas_semana"]),
             "🌷"
         )
 
     with c3:
         dashboard_card(
             "Pacientes",
-            "0",
+            str(stats["total_pacientes"]),
             "👩"
         )
 
     with c4:
         dashboard_card(
             "Próxima Consulta",
-            "--:--",
+            stats["proxima_horario"],
             "💗"
         )
 
     st.write("")
     st.write("")
 
-    st.markdown(
-        """
-        <div class="dashboard-card">
+    st.subheader("📅 Próximas consultas")
 
-        <h3>📅 Calendário</h3>
-
-        <br>
-
-        O calendário profissional será integrado
-        nas próximas etapas utilizando FullCalendar.
-
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    if not stats["proximas"]:
+        st.info("Nenhuma consulta agendada. Vá até \"Agenda\" para marcar uma.")
+    else:
+        for item in stats["proximas"]:
+            st.markdown(
+                f"""
+                <div class="dashboard-card" style="margin-bottom:8px;">
+                    <b>{item['date'].strftime('%d/%m/%Y')} às {item['start_time'].strftime('%H:%M')}</b>
+                    — {item['patient_name']} · {item['title']}
+                    <span style="color:#808080;"> ({item['status']})</span>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )

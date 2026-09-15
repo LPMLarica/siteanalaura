@@ -17,15 +17,20 @@ def prontuario(patient_id):
     user = current_user()
 
     patient = get_patient(
-        patient_id
+        patient_id,
+        user["id"]
     )
+
+    if not patient:
+        st.error("Paciente não encontrado.")
+        return
 
     register_action(
         user["id"],
         "Visualizou prontuário",
         patient.full_name
     )
-    
+
 
     st.title(f"📖 Prontuário - {patient.full_name}")
 
@@ -44,7 +49,8 @@ def prontuario(patient_id):
 
     with tab2:
         records = get_patient_records(
-            patient.id
+            patient.id,
+            user["id"]
         )
 
         record_history(

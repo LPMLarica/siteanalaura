@@ -49,15 +49,19 @@ def pacientes():
                 from services.patient_service import get_patient
 
                 patient = get_patient(
-                    
-                    st.session_state.selected_patient
-                    
+                    st.session_state.selected_patient,
+                    user["id"]
                 )
+
+                if not patient:
+                    st.error("Paciente não encontrado.")
+                    st.stop()
 
                 patient_profile(
 
-                    patient
-                    
+                    patient,
+                    user["id"]
+
                 )
 
     with aba2:

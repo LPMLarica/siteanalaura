@@ -1,10 +1,9 @@
 import os
-import streamlit as st
 
-#from dotenv import load_dotenv
+from dotenv import load_dotenv
 
 
-#load_dotenv()
+load_dotenv()
 
 
 class Settings:
@@ -14,30 +13,35 @@ class Settings:
         "Agenda Psicóloga"
     )
 
+    # Connection string do Postgres do seu projeto Supabase (Project
+    # Settings -> Database -> Connection string -> URI). Sem essa
+    # variável, cai no SQLite local (só para desenvolvimento rápido —
+    # não recomendado em produção, já que os dados não persistem entre
+    # deploys em muitos ambientes de hospedagem).
     DATABASE_URL = os.getenv(
         "DATABASE_URL",
         "sqlite:///storage/app.db"
     )
 
-    DATABASE_BACKEND = os.getenv(
-        "DATABASE_BACKEND",
-        "sqlite"
+    # URL e chave "anon" do projeto Supabase (Project Settings -> API),
+    # usadas apenas para autenticação (login/cadastro) via Supabase
+    # Auth. O acesso aos dados (pacientes, consultas etc.) é feito
+    # separadamente, via SQLAlchemy, usando DATABASE_URL acima.
+    SUPABASE_URL = os.getenv(
+        "SUPABASE_URL"
     )
 
-    FIREBASE_CREDENTIALS = (
-        os.getenv("FIREBASE_CREDENTIALS")
-        or os.getenv(
-            "GOOGLE_APPLICATION_CREDENTIALS"
-        )
+    SUPABASE_KEY = os.getenv(
+        "SUPABASE_KEY"
     )
 
-    SECRET_KEY = st.secrets["cookie_secret"]
-
-    GOOGLE_CLIENT_ID = st.secrets["client_id"]
-
-    GOOGLE_CLIENT_SECRET = st.secrets["client_secret"]
-
-    GOOGLE_REDIRECT_URI = st.secrets["redirect_uri"]
+    # Sem fallback hardcoded de propósito: uma chave padrão conhecida
+    # anularia a criptografia dos prontuários que depende dela.
+    # security/encription.py levanta um erro claro na inicialização se
+    # isso não estiver definido ou não for uma chave Fernet válida.
+    SECRET_KEY = os.getenv(
+        "SECRET_KEY"
+    )
 
     TIMEZONE = os.getenv(
         "TIMEZONE",
@@ -45,11 +49,11 @@ class Settings:
     )
 
     @property
-    def google_configured(self):
+    def supabase_configured(self):
 
         return bool(
-            self.GOOGLE_CLIENT_ID
-            and self.GOOGLE_CLIENT_SECRET
+            self.SUPABASE_URL
+            and self.SUPABASE_KEY
         )
 
 

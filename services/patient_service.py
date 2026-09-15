@@ -2,12 +2,32 @@ from dados.database import SessionLocal
 from dados.models import Patient
 
 
+# Campos que create_patient pode definir. Evita que um dict de dados
+# extra sobrescreva colunas que não deveriam vir do formulário.
+PATIENT_FIELDS = {
+    "user_id",
+    "full_name",
+    "cpf",
+    "birth_date",
+    "phone",
+    "email",
+    "address",
+    "notes",
+    "status",
+    "photo",
+}
+
+
 def create_patient(data):
 
     db = SessionLocal()
 
     patient = Patient(
-        **data
+        **{
+            key: value
+            for key, value in data.items()
+            if key in PATIENT_FIELDS
+        }
     )
 
     db.add(patient)
@@ -19,7 +39,6 @@ def create_patient(data):
 
 
 def get_patients(user_id):
-
 
     db = SessionLocal()
 
@@ -45,7 +64,7 @@ def get_patients(user_id):
     return patients
 
 
-def search_patients(user_id,text):
+def search_patients(user_id, text):
 
     db = SessionLocal()
 
@@ -70,10 +89,11 @@ def search_patients(user_id,text):
     return result
 
 
-def get_patient(patient_id):
+def get_patient(patient_id, user_id):
+    """Busca um paciente, restrito ao usuário dono dele — impede que
+    um usuário veja o paciente/prontuário de outro só trocando o id."""
 
     db = SessionLocal()
-
 
     patient = (
         db.query(
@@ -81,7 +101,8 @@ def get_patient(patient_id):
         )
 
         .filter(
-            Patient.id == patient_id
+            Patient.id == patient_id,
+            Patient.user_id == user_id
         )
         .first()
     )
