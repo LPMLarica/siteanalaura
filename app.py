@@ -14,6 +14,11 @@ from pages.consultas import consultas
 from pages.pacientes import pacientes
 from pages.prontuario import prontuario
 from pages.configuracoes import configuracoes
+import psycopg2
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 
 st.set_page_config(
