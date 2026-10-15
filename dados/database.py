@@ -40,12 +40,17 @@ def get_engine():
 
     parsed = make_url(url)
 
+    if settings.DATABASE_PASSWORD:
+        # O objeto URL do SQLAlchemy cuida do escape; a senha pode ter
+        # qualquer caractere.
+        parsed = parsed.set(password=settings.DATABASE_PASSWORD)
+
     # Supabase exige SSL; bancos locais de desenvolvimento normalmente não.
     if "sslmode" not in parsed.query and parsed.host not in ("localhost", "127.0.0.1", None):
         connect_args["sslmode"] = "require"
 
     return create_engine(
-        url,
+        parsed,
         # O pooler do Supabase encerra conexões ociosas; pre_ping evita
         # erros de "server closed the connection unexpectedly".
         pool_pre_ping=True,

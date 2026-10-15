@@ -77,6 +77,17 @@ class Settings:
         )
 
     @property
+    def DATABASE_PASSWORD(self):
+        """Senha do banco em separado: evita ter de codificar caracteres
+        especiais (@, #, /, %...) dentro da DATABASE_URL."""
+        value = _read("DATABASE_PASSWORD")
+
+        if value in (None, "") or str(value).startswith("COLE-AQUI"):
+            return None
+
+        return str(value)
+
+    @property
     def SUPABASE_URL(self):
         return _read("SUPABASE_URL")
 
@@ -158,7 +169,7 @@ class Settings:
                 "DATABASE_URL — URI do Session pooler (Supabase → Connect → Connection String)."
             )
 
-        if "[YOUR-PASSWORD]" in url or "SUA-SENHA" in url:
+        if ("[YOUR-PASSWORD]" in url or "SUA-SENHA" in url) and not self.DATABASE_PASSWORD:
             issues.append(
                 "DATABASE_URL ainda contém o marcador da senha — troque pela senha do banco."
             )
