@@ -88,6 +88,11 @@ class Settings:
         return str(value)
 
     @property
+    def SUPABASE_REGION(self):
+        """Região do projeto (usada para montar o endereço do pooler)."""
+        return _read("SUPABASE_REGION", "sa-east-1")
+
+    @property
     def SUPABASE_URL(self):
         return _read("SUPABASE_URL")
 

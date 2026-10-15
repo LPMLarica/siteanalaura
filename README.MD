@@ -64,17 +64,19 @@ Valores dos secrets:
 |---|---|
 | `SUPABASE_URL` | `https://kzwwtywsvwhywlbzyidd.supabase.co` (já no exemplo) |
 | `SUPABASE_KEY` | chave *publishable* `sb_publishable_...` (já no exemplo; é pública por natureza) |
-| `DATABASE_URL` | botão **Connect** (topo do painel) → **Connection String** → Method **Session pooler** → copie a URI e troque `[YOUR-PASSWORD]` pela senha do banco. Esqueceu a senha? **Project Settings → Database → Reset database password** |
+| `DATABASE_URL` | botão **Connect** (topo do painel) → **Connection String** → Method **Session pooler** → copie a URI como está (pode manter `[YOUR-PASSWORD]`) |
+| `DATABASE_PASSWORD` | a senha do banco. Esqueceu? **Project Settings → Database → Reset database password**. Fica separada da URL para que caracteres como `@ # / %` não quebrem a conexão |
 | `SECRET_KEY` | se ficar vazia, o próprio app mostra uma chave gerada na hora; ou rode `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"` |
 
-> Use o **Session pooler**. A conexão direta (`db.<ref>.supabase.co`) só
-> funciona via IPv6 e não conecta a partir do Streamlit Cloud. Nunca use a
+> A conexão direta (`db.<ref>.supabase.co`) só funciona via IPv6 e o Streamlit
+> Cloud é IPv4. Se ela for informada, o app tenta sozinho o pooler IPv4 da região
+> (`SUPABASE_REGION`, padrão `sa-east-1`), já com o usuário `postgres.<ref>`. Nunca use a
 > chave `service_role`/secret no app.
 
 Ajustes em **Authentication** (uma vez só):
 
 - **URL Configuration → Site URL**: o endereço do app publicado
-  (ex.: `https://agendapsiana.streamlit.app`) — é para onde aponta o
+  (ex.: `https://agenda-analaura.streamlit.app`) — é para onde aponta o
   link de confirmação de e-mail.
 - **Emails → Templates → Reset Password**: inclua o código no corpo, por
   exemplo `<p>Seu código: <strong>{{ .Token }}</strong></p>` (a tela

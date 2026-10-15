@@ -78,9 +78,11 @@ def _db_hints(error):
 
     if "could not translate host name" in text or "network is unreachable" in text or "cannot assign requested address" in text:
         return [
-            "O endereço do banco não foi alcançado. No Streamlit Cloud use a URI do "
-            "**Session pooler** (host `aws-...pooler.supabase.com`), não a conexão direta "
-            "`db.<projeto>.supabase.co`.",
+            "O endereço do banco não foi alcançado (o app já tentou o pooler IPv4 da região "
+            f"`{settings.SUPABASE_REGION}` automaticamente).",
+            "Confira se o projeto do Supabase está ativo (não pausado).",
+            "Se continuar, cole em DATABASE_URL a URI exata de Supabase → **Connect** → "
+            "Connection String → Method **Session pooler**.",
         ]
 
     if "tenant or user not found" in text:
@@ -96,7 +98,10 @@ def _db_hints(error):
 
 
 if db_error:
+    from dados.database import reset_engine
+
     _prepare_database.clear()
+    reset_engine()
     logging.error("Falha ao conectar ao banco: %s", db_error)
     _setup_problem("Não foi possível conectar ao banco de dados", _db_hints(db_error))
 
