@@ -1,9 +1,15 @@
+# Segredos — nunca versionar
 .env
-.venv
+.streamlit/secrets.toml
+
+# Ambiente e caches
+.venv/
+venv/
 __pycache__/
 *.pyc
-storage/*.db
-storage/*.sqlite
-storage/*.sqlite3
-.streamlit/secrets.toml
-node_modules/
+.pytest_cache/
+
+# Banco local de desenvolvimento
+storage/
+*.sqlite3
+*.db

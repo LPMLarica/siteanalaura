@@ -1,29 +1,28 @@
-import streamlit as st
-from supabase import create_client, Client
-import config
+from supabase import Client, ClientOptions, create_client
+
 from config.settings import settings
 
 
-@st.cache_resource(show_spinner=False)
-def get_supabase_client() -> Client:
+def new_supabase_client() -> Client:
     """
-    Cria (e reutiliza, via cache do Streamlit) o cliente do Supabase
-    usado para autenticação de usuários (login/cadastro).
+    Cria um cliente do Supabase NOVO a cada operação de autenticação.
 
-    O banco de dados relacional em si (pacientes, consultas, prontuários
-    etc.) é acessado separadamente via SQLAlchemy, apontando para a
-    connection string Postgres do mesmo projeto Supabase
-    (settings.DATABASE_URL) — não pelo cliente REST aqui criado.
+    Não usamos um cliente compartilhado (st.cache_resource) de propósito:
+    o cliente guarda a sessão do último login, e no Streamlit o mesmo
+    processo atende todos os visitantes — um cliente compartilhado
+    misturaria as sessões de pessoas diferentes.
     """
 
     if not settings.SUPABASE_URL or not settings.SUPABASE_KEY:
         raise RuntimeError(
-            "SUPABASE_URL/SUPABASE_KEY não configurados. Preencha essas "
-            "variáveis no arquivo .env (veja .env.example) com os dados "
-            "do seu projeto em https://app.supabase.com."
+            "SUPABASE_URL/SUPABASE_KEY não configurados. Veja o README."
         )
 
     return create_client(
         settings.SUPABASE_URL,
-        settings.SUPABASE_KEY
+        settings.SUPABASE_KEY,
+        options=ClientOptions(
+            persist_session=False,
+            auto_refresh_token=False,
+        ),
     )

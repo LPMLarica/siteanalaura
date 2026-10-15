@@ -1,18 +1,24 @@
-import os
-import sys
+"""
+Cria as tabelas que ainda não existem (sem apagar nada).
 
-ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if ROOT_DIR not in sys.path:
-    sys.path.insert(0, ROOT_DIR)
+Uso:  python -m dados.migrations
 
-from .database import Base, engine
-import models
+Em produção o schema já é criado pelo arquivo ``sql/001_schema.sql``
+(aplicado no Supabase). Este script é útil para desenvolvimento local
+com SQLite ou para conferir se a connection string está correta.
+"""
+
+from dados.database import check_connection, init_db
 
 
 def migrate():
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
-    print("Banco atualizado com sucesso.")
+    error = check_connection()
+
+    if error:
+        raise SystemExit(f"Não foi possível conectar ao banco: {error}")
+
+    init_db()
+    print("Tabelas verificadas/criadas com sucesso.")
 
 
 if __name__ == "__main__":

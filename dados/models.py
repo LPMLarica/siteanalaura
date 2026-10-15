@@ -1,495 +1,253 @@
-import uuid
-from datetime import datetime
+"""
+Modelos do banco de dados.
+
+Todos os registros pertencem a um usuário (``user_id``) — cada
+profissional só enxerga os próprios pacientes, consultas, prontuários e
+pagamentos. Os serviços em ``services/`` sempre filtram por ``user_id``.
+"""
+
+from datetime import date, datetime, time, timezone
+from decimal import Decimal
+
 from sqlalchemy import (
     Boolean,
-    Column,
     Date,
     DateTime,
-    Float,
-    Float,
     ForeignKey,
+    Index,
     Integer,
+    Numeric,
     String,
     Text,
-    Time
+    Time,
+    UniqueConstraint,
 )
-from sqlalchemy.orm import relationship
-import database
-from database import Base
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from dados.database import Base
 
 
-def generate_uuid():
-    return str(uuid.uuid4())
+def utcnow():
+    return datetime.now(timezone.utc)
 
 
 class TimestampMixin:
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(
-        DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
     )
-
-class Budget(database.Base):
-
-    __tablename__ = "budgets"
-
-    id = Column(
-        Integer,
-        primary_key=True
-    )
-
-    user_id = Column(
-        Integer,
-        ForeignKey(
-            "users.id"
-        ),
-        nullable=False
-    )
-
-    patient_id = Column(
-        Integer,
-        ForeignKey(
-            "patients.id"
-        ),
-        nullable=False
-    )
-
-    description = Column(
-        String(255)
-    )
-
-    sessions_quantity = Column(
-        Integer,
-        default=1
-    )
-
-    session_value = Column(
-        Float,
-        default=0
-    )
-
-    discount = Column(
-        Float,
-        default=0
-    )
-
-    total_value = Column(
-        Float,
-        default=0
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False
     )
 
 
-    status = Column(
-        String(50),
-        default="Pendente"
-    )
+# ---------------------------------------------------------------- usuários
 
-    created_at = Column(
-        DateTime,
-        default=datetime.utcnow
-    )
 
-    patient = relationship(
-        "Patient"
-    )
-
-class Payment(database.Base):
-
-    __tablename__ = "payments"
-
-    id = Column(Integer, primary_key=True)
-
-    consultation_id = Column(
-        Integer,
-        ForeignKey("consultations.id")
-    )
-
-    patient_id = Column(
-        Integer,
-        ForeignKey("patients.id")
-    )
-
-    user_id = Column(
-        Integer,
-        ForeignKey("users.id")
-    )
-
-    amount = Column(Float)
-
-    payment_method = Column(String(50))
-
-    payment_date = Column(Date)
-
-    status = Column(String(30))
-
-    notes = Column(Text)
-
-    receipt_number = Column(String(100))
-
-class WorkingHours(database.Base):
-
-    __tablename__ = "working_hours"
-
-    id = Column(
-        Integer,
-        primary_key=True
-    )
-
-    user_id = Column(
-        Integer,
-        ForeignKey("users.id")
-    )
-
-    weekday = Column(
-        Integer,
-        nullable=False
-    )
-
-    start_time = Column(
-        Time,
-        nullable=False
-    )
-
-    end_time = Column(
-        Time,
-        nullable=False
-    )
-
-    active = Column(
-        Boolean,
-        default=True
-    )
-
-class BlockedSchedule(database.Base):
-
-    __tablename__ = "blocked_schedule"
-
-    id = Column(
-        Integer,
-        primary_key=True
-    )
-
-    user_id = Column(
-        Integer,
-        ForeignKey("users.id")
-    )
-
-    date = Column(
-        Date,
-        nullable=False
-    )
-
-    reason = Column(
-        String(255)
-    )
-
-    all_day = Column(
-        Boolean,
-        default=False
-    )
-
-class User(database.Base, TimestampMixin):
-
+class User(TimestampMixin, Base):
     __tablename__ = "users"
 
-    id = Column(
-        Integer,
-        primary_key=True
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    uuid = Column(
-        String(36),
-        unique=True,
-        nullable=False,
-        default=generate_uuid
-    )
+    # ID do usuário no Supabase Auth (auth.users.id).
+    supabase_uid: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
 
-    # ID do usuário no Supabase Auth (auth.users.id) — correlaciona a
-    # conta de login (Supabase) com os dados locais (pacientes,
-    # consultas, prontuários, pagamentos) deste usuário.
-    supabase_uid = Column(
-        String(64),
-        unique=True,
-        nullable=False
-    )
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    email: Mapped[str] = mapped_column(String(200), unique=True, nullable=False)
+    professional_register: Mapped[str | None] = mapped_column(String(50))  # CRP
+    phone: Mapped[str | None] = mapped_column(String(30))
 
-    name = Column(
-        String(200),
-        nullable=False
-    )
+    default_session_minutes: Mapped[int] = mapped_column(Integer, default=50, nullable=False)
+    default_session_value: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
 
-    email = Column(
-        String(200),
-        unique=True,
-        nullable=False
-    )
-
-    active = Column(
-        Boolean,
-        default=True,
-        nullable=False
-    )
-
-    consultations = relationship(
-        "Consultation",
-        back_populates="user"
-    )
+    active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
 
-class Patient(database.Base):
+# --------------------------------------------------------------- pacientes
 
+
+PATIENT_STATUSES = ["Ativo", "Em pausa", "Alta", "Inativo"]
+
+
+class Patient(TimestampMixin, Base):
     __tablename__ = "patients"
+    __table_args__ = (Index("ix_patients_user_name", "user_id", "full_name"),)
 
-    id = Column(
-        Integer,
-        primary_key=True
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
 
-    user_id = Column(
-        Integer,
-        ForeignKey("users.id")
+    full_name: Mapped[str] = mapped_column(String(150), nullable=False)
+    cpf: Mapped[str | None] = mapped_column(String(14))
+    birth_date: Mapped[date | None] = mapped_column(Date)
+    phone: Mapped[str | None] = mapped_column(String(30))
+    email: Mapped[str | None] = mapped_column(String(150))
+    address: Mapped[str | None] = mapped_column(String(255))
+    emergency_contact: Mapped[str | None] = mapped_column(String(200))
+    notes: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(30), default="Ativo", nullable=False)
+    session_value: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
+
+    consultations: Mapped[list["Consultation"]] = relationship(
+        back_populates="patient", cascade="all, delete-orphan", passive_deletes=True
+    )
+    records: Mapped[list["ClinicalRecord"]] = relationship(
+        back_populates="patient", cascade="all, delete-orphan", passive_deletes=True
     )
 
-    full_name = Column(
-        String(150),
-        nullable=False
-    )
 
-    cpf = Column(
-        String(14)
-    )
-
-    birth_date = Column(
-        Date
-    )
-
-    phone = Column(
-        String(30)
-    )
-
-    email = Column(
-        String(150)
-    )
-
-    address = Column(
-        String(255)
-    )
-
-    notes = Column(
-        Text
-    )
-
-    status = Column(
-        String(30),
-        default="Ativo"
-    )
-
-    photo = Column(
-        String(500)
-    )
-
-    records = relationship(
-        "ClinicalRecord",
-        back_populates="patient"
-    )
-
-    created_at = Column(
-        DateTime,
-        default=datetime.utcnow
-    )
-
-    consultations = relationship(
-        "Consultation",
-        back_populates="patient"
-    )
-
-class AuditLog(database.Base):
-
-    __tablename__ = "audit_logs"
-
-    id = Column(
-        Integer,
-        primary_key=True
-    )
-
-    user_id = Column(
-        Integer,
-        ForeignKey(
-            "users.id"
-        )
-    )
-
-    action = Column(
-        String(255)
-    )
-
-    target = Column(
-        String(255)
-    )
-
-    created_at = Column(
-        DateTime,
-        default=datetime.utcnow
-    )
-
-class Availability(database.Base):
-
-    __tablename__ = "availability"
-
-    id = Column(Integer, primary_key=True)
-    weekday = Column(Integer)
-    start_time = Column(Time)
-    end_time = Column(Time)
-    active = Column(Boolean, default=True)
+# --------------------------------------------------------------- consultas
 
 
-class BlockedDate(database.Base):
+CONSULTATION_STATUSES = ["Agendada", "Confirmada", "Realizada", "Falta", "Cancelada"]
 
-    __tablename__ = "blocked_dates"
+STATUS_COLORS = {
+    "Agendada": "#7D9FC3",
+    "Confirmada": "#4F7CAC",
+    "Realizada": "#5E9C7F",
+    "Falta": "#C9894B",
+    "Cancelada": "#B7AFB3",
+}
 
-    id = Column(Integer, primary_key=True)
-    date = Column(Date)
-    reason = Column(String(255))
+MODALITIES = ["Presencial", "Online"]
 
 
-class Consultation(database.Base):
-
+class Consultation(TimestampMixin, Base):
     __tablename__ = "consultations"
+    __table_args__ = (Index("ix_consultations_user_date", "user_id", "date"),)
 
-
-    id = Column(
-        Integer,
-        primary_key=True
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    patient_id: Mapped[int] = mapped_column(
+        ForeignKey("patients.id", ondelete="CASCADE"), nullable=False, index=True
     )
 
+    date: Mapped[date] = mapped_column(Date, nullable=False)
+    start_time: Mapped[time] = mapped_column(Time, nullable=False)
+    end_time: Mapped[time] = mapped_column(Time, nullable=False)
 
-    patient_id = Column(
-        Integer,
-        ForeignKey(
-            "patients.id"
-        )
+    title: Mapped[str] = mapped_column(String(255), default="Sessão", nullable=False)
+    status: Mapped[str] = mapped_column(String(30), default="Agendada", nullable=False)
+    modality: Mapped[str] = mapped_column(String(30), default="Presencial", nullable=False)
+    observation: Mapped[str | None] = mapped_column(Text)
+
+    patient: Mapped["Patient"] = relationship(back_populates="consultations")
+    payment: Mapped["Payment | None"] = relationship(
+        back_populates="consultation",
+        uselist=False,
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
+    @property
+    def color(self):
+        return STATUS_COLORS.get(self.status, STATUS_COLORS["Agendada"])
 
-    user_id = Column(
-        Integer,
-        ForeignKey(
-            "users.id"
-        )
+
+# ------------------------------------------------------------- pagamentos
+
+
+PAYMENT_STATUSES = ["Pago", "Pendente"]
+PAYMENT_METHODS = ["Pix", "Cartão de crédito", "Cartão de débito", "Dinheiro", "Transferência", "Convênio", "Outro"]
+
+
+class Payment(TimestampMixin, Base):
+    __tablename__ = "payments"
+    __table_args__ = (
+        UniqueConstraint("consultation_id", name="uq_payments_consultation"),
+        Index("ix_payments_user_date", "user_id", "payment_date"),
     )
 
-
-    date = Column(
-        Date,
-        nullable=False
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    patient_id: Mapped[int] = mapped_column(
+        ForeignKey("patients.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    consultation_id: Mapped[int] = mapped_column(
+        ForeignKey("consultations.id", ondelete="CASCADE"), nullable=False
     )
 
+    amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=0, nullable=False)
+    payment_method: Mapped[str | None] = mapped_column(String(50))
+    payment_date: Mapped[date | None] = mapped_column(Date)
+    status: Mapped[str] = mapped_column(String(30), default="Pendente", nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text)
 
-    start_time = Column(
-        Time,
-        nullable=False
-    )
-
-
-    end_time = Column(
-        Time,
-        nullable=False
-    )
+    consultation: Mapped["Consultation"] = relationship(back_populates="payment")
 
 
-    title = Column(
-        String(255),
-        default="Consulta"
-    )
+# -------------------------------------------------------------- prontuário
 
 
-    status = Column(
-        String(50),
-        default="Agendada"
-    )
-
-
-    color = Column(
-        String(20),
-        default="#D98CA8"
-    )
-
-
-    observation = Column(
-        Text
-    )
-
-
-    confirmed = Column(
-        Boolean,
-        default=False
-    )
-
-
-    patient = relationship(
-        "Patient",
-        back_populates="consultations"
-    )
-
-
-    user = relationship(
-        "User",
-        back_populates="consultations"
-    )
-
-
-
-class ClinicalRecord(database.Base):
-
+class ClinicalRecord(TimestampMixin, Base):
     __tablename__ = "clinical_records"
 
-    id = Column(
-        Integer,
-        primary_key=True
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    patient_id: Mapped[int] = mapped_column(
+        ForeignKey("patients.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    consultation_id: Mapped[int | None] = mapped_column(
+        ForeignKey("consultations.id", ondelete="SET NULL"), index=True
     )
 
-    patient_id = Column(
-        Integer,
-        ForeignKey(
-            "patients.id"
-        ),
-        nullable=False
+    session_date: Mapped[date] = mapped_column(Date, nullable=False)
+
+    # Texto criptografado (Fernet) — ver security/encryption.py.
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+
+    patient: Mapped["Patient"] = relationship(back_populates="records")
+
+
+# -------------------------------------------------- horários e bloqueios
+
+
+WEEKDAYS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"]
+
+
+class WorkingHours(Base):
+    __tablename__ = "working_hours"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
+    weekday: Mapped[int] = mapped_column(Integer, nullable=False)  # 0 = segunda
+    start_time: Mapped[time] = mapped_column(Time, nullable=False)
+    end_time: Mapped[time] = mapped_column(Time, nullable=False)
+    active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
-    user_id = Column(
-        Integer,
-        ForeignKey(
-            "users.id"
-        ),
-        nullable=False
+
+class BlockedPeriod(Base):
+    __tablename__ = "blocked_periods"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
+    start_date: Mapped[date] = mapped_column(Date, nullable=False)
+    end_date: Mapped[date] = mapped_column(Date, nullable=False)
+    reason: Mapped[str | None] = mapped_column(String(255))
 
-    content = Column(
-        Text,
-        nullable=False
+
+# -------------------------------------------------------------- auditoria
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), index=True
     )
-
-    created_at = Column(
-
-        DateTime,
-        default=datetime.utcnow
+    action: Mapped[str] = mapped_column(String(255), nullable=False)
+    target: Mapped[str | None] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
     )
-
-    patient = relationship(
-        "Patient",
-        back_populates="records"
-    )
-
-    user = relationship(
-        "User"
-    )
-
-class Configuration(database.Base):
-
-    __tablename__ = "configurations"
-
-    id = Column(Integer, primary_key=True)
-    timezone = Column(String(100))
-    notification_minutes = Column(Integer)
-    theme = Column(String(50))

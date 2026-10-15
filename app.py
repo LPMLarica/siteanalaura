@@ -1,104 +1,126 @@
+import logging
+
 import streamlit as st
-from pathlib import Path
 
+from components.ui import LOGO, inject_css
 from config.settings import settings
-from dados.database import init_db
-from auth.session import (
-    initialize_session,
-    is_authenticated
-)
-from pages.login import login_page
-from components.sidebar import sidebar
-from pages.dashboard import dashboard
-from pages.consultas import consultas
-from pages.pacientes import pacientes
-from pages.prontuario import prontuario
-from pages.configuracoes import configuracoes
-from dotenv import load_dotenv
 
-load_dotenv()
-
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
 st.set_page_config(
-
     page_title=settings.APP_NAME,
-
-    page_icon="🌸",
-
+    page_icon=str(LOGO) if LOGO.exists() else "🌸",
     layout="wide",
-
-    initial_sidebar_state="expanded"
-
+    initial_sidebar_state="auto",
 )
 
-
-# Garante que as tabelas existam (Postgres do Supabase em produção,
-# SQLite local em desenvolvimento) antes de qualquer consulta. Idempotente
-# — não recria tabelas já existentes.
-init_db()
+inject_css()
 
 
-css = Path(__file__).resolve().parent / "assets" / "css" / "main.css"
+# --------------------------------------------------- configuração e banco
 
 
-if css.exists():
+def _setup_problem(title, items):
+    st.markdown(f"## {title}")
 
-    st.markdown(
+    for item in items:
+        st.markdown(f"- {item}")
 
-        f"""
+    if any(item.startswith("SECRET_KEY") for item in items):
+        from cryptography.fernet import Fernet
 
-        <style>
+        st.markdown(
+            "Sugestão de **SECRET_KEY** gerada agora (copie e guarde uma cópia em "
+            "local seguro — ela não pode ser trocada depois que houver prontuários):"
+        )
+        st.code(Fernet.generate_key().decode(), language=None)
 
-        {css.read_text()}
-
-        </style>
-
-        """,
-
-        unsafe_allow_html=True
-
+    st.info(
+        "No Streamlit Community Cloud, preencha em **Settings → Secrets** do app. "
+        "Localmente, use `.streamlit/secrets.toml` ou `.env`. O README explica cada valor."
     )
-
-
-initialize_session()
-
-
-if not is_authenticated():
-
-    login_page()
-
     st.stop()
 
 
-page = sidebar()
+problems = settings.problems()
+
+if problems:
+    _setup_problem("Configuração incompleta", problems)
 
 
-if page == "dashboard":
+@st.cache_resource(show_spinner="Conectando ao banco de dados...")
+def _prepare_database():
+    from dados.database import check_connection, init_db
 
-    dashboard()
+    error = check_connection()
 
+    if error:
+        return error
 
-elif page == "consultas":
-
-    consultas()
-
-
-elif page == "pacientes":
-
-    pacientes()
+    init_db()
+    return None
 
 
-elif page == "prontuario":
+db_error = _prepare_database()
 
-    patient_id = st.session_state.get("patient_id")
+if db_error:
+    _prepare_database.clear()
+    logging.error("Falha ao conectar ao banco: %s", db_error)
+    _setup_problem(
+        "Não foi possível conectar ao banco de dados",
+        [
+            "Confira a DATABASE_URL (use a connection string do *Session pooler* do Supabase).",
+            "Confira se a senha do banco está correta.",
+            "Se o projeto do Supabase estiver pausado, reative-o no painel.",
+        ],
+    )
 
-    if not patient_id:
-        st.session_state.page = "pacientes"
-        st.rerun()
 
-    prontuario(patient_id)
+# ------------------------------------------------------------ autenticação
+
+from auth.session import is_authenticated  # noqa: E402
+from components.sidebar import sidebar_brand, sidebar_footer  # noqa: E402
+from views.agenda import agenda  # noqa: E402
+from views.configuracoes import configuracoes  # noqa: E402
+from views.dashboard import dashboard  # noqa: E402
+from views.financeiro import financeiro  # noqa: E402
+from views.login import login_page  # noqa: E402
+from views.pacientes import pacientes  # noqa: E402
+
+sidebar_brand()
+
+if not is_authenticated():
+    login_page()
+    st.stop()
 
 
-elif page == "configuracoes":
+# --------------------------------------------------------------- navegação
 
-    configuracoes()
+pages = {
+    "dashboard": st.Page(dashboard, title="Início", icon=":material/home:", url_path="inicio", default=True),
+    "agenda": st.Page(agenda, title="Agenda", icon=":material/calendar_month:", url_path="agenda"),
+    "pacientes": st.Page(pacientes, title="Pacientes", icon=":material/groups:", url_path="pacientes"),
+    "financeiro": st.Page(financeiro, title="Financeiro", icon=":material/payments:", url_path="financeiro"),
+    "configuracoes": st.Page(configuracoes, title="Configurações", icon=":material/settings:", url_path="configuracoes"),
+}
+
+st.session_state["pages"] = pages
+
+navigation = st.navigation(list(pages.values()))
+
+sidebar_footer()
+
+flash = st.session_state.pop("flash", None)
+
+if flash:
+    message, icon = flash
+    st.toast(message, icon=icon)
+
+try:
+    navigation.run()
+except Exception:  # pragma: no cover - rede de segurança da interface
+    logging.exception("Erro não tratado na página")
+    st.error(
+        "Algo deu errado ao carregar esta tela. Tente novamente; se continuar, "
+        "recarregue a página."
+    )

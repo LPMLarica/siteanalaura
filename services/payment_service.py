@@ -1,167 +1,220 @@
 """
-Controle de pagamentos, correlacionado a paciente + consulta.
+Pagamentos — no máximo um por consulta (criado/atualizado via upsert).
 
-Cada consulta pode ter, no máximo, um registro de pagamento
-(services.payment_service usa upsert_payment: cria se não existir,
-atualiza se já existir). O status ("Pago"/"Pendente") é o que
-alimenta o indicador exibido no perfil do paciente e nos detalhes da
-consulta.
+Regras do financeiro:
+- "Recebido no mês": pagamentos com status Pago e data de pagamento no mês;
+- "A receber": consultas Realizadas (ou Falta cobrada) sem pagamento Pago.
 """
 
-from datetime import date
+from decimal import Decimal
 
-from dados.database import SessionLocal
-from dados.models import Payment
+from sqlalchemy import select
+from sqlalchemy.orm import joinedload
 
+from dados.database import session_scope
+from dados.models import Consultation, Patient, Payment, User
+from utils.formatting import today
 
 STATUS_PAGO = "Pago"
 STATUS_PENDENTE = "Pendente"
 
-PAYMENT_METHODS = [
-    "Pix",
-    "Cartão",
-    "Dinheiro",
-    "Transferência",
-    "Outro",
-]
+BILLABLE_STATUSES = ("Realizada", "Falta")
 
 
-def get_payment_for_consultation(consultation_id, user_id):
-    """Busca o pagamento de uma consulta, restrito ao usuário dono."""
+def suggested_amount(db, consultation):
+    """Valor da consulta: pagamento existente > valor do paciente > padrão."""
 
-    db = SessionLocal()
+    if consultation.payment and consultation.payment.amount:
+        return Decimal(consultation.payment.amount)
 
-    payment = (
-        db.query(Payment)
-        .filter(
-            Payment.consultation_id == consultation_id,
-            Payment.user_id == user_id,
+    patient = consultation.patient or db.get(Patient, consultation.patient_id)
+
+    if patient and patient.session_value:
+        return Decimal(patient.session_value)
+
+    user = db.get(User, consultation.user_id)
+
+    if user and user.default_session_value:
+        return Decimal(user.default_session_value)
+
+    return Decimal("0")
+
+
+def suggested_amount_for(consultation_id, user_id):
+    with session_scope() as db:
+        consultation = db.scalar(
+            select(Consultation)
+            .options(joinedload(Consultation.patient), joinedload(Consultation.payment))
+            .where(Consultation.id == consultation_id, Consultation.user_id == user_id)
         )
-        .first()
-    )
-
-    db.close()
-
-    return payment
+        return suggested_amount(db, consultation) if consultation else Decimal("0")
 
 
-def get_payments_for_patient(patient_id, user_id):
-    """Lista os pagamentos de um paciente, restrito ao usuário dono."""
-
-    db = SessionLocal()
-
-    payments = (
-        db.query(Payment)
-        .filter(
-            Payment.patient_id == patient_id,
-            Payment.user_id == user_id,
+def upsert_payment(consultation_id, user_id, status, amount=None, payment_method=None, payment_date=None, notes=None):
+    with session_scope() as db:
+        consultation = db.scalar(
+            select(Consultation)
+            .options(joinedload(Consultation.payment), joinedload(Consultation.patient))
+            .where(Consultation.id == consultation_id, Consultation.user_id == user_id)
         )
-        .order_by(Payment.payment_date.desc())
-        .all()
-    )
 
-    db.close()
+        if consultation is None:
+            raise ValueError("Consulta não encontrada.")
 
-    return payments
-
-
-def get_patient_payment_summary(patient_id, user_id):
-    """Resumo simples (total pago / total pendente / quantidade) para
-    exibir no perfil do paciente."""
-
-    payments = get_payments_for_patient(patient_id, user_id)
-
-    total_pago = sum(
-        (p.amount or 0) for p in payments if p.status == STATUS_PAGO
-    )
-
-    total_pendente = sum(
-        (p.amount or 0) for p in payments if p.status != STATUS_PAGO
-    )
-
-    return {
-        "total_pago": total_pago,
-        "total_pendente": total_pendente,
-        "quantidade": len(payments),
-    }
-
-
-def upsert_payment(
-    consultation_id,
-    patient_id,
-    user_id,
-    status,
-    amount=None,
-    payment_method=None,
-    notes=None,
-    payment_date=None,
-):
-    """Cria ou atualiza o pagamento associado a uma consulta.
-
-    Sempre restrito ao user_id de quem está chamando — nunca cria/edita
-    o pagamento de uma consulta de outro usuário.
-    """
-
-    db = SessionLocal()
-
-    try:
-        payment = (
-            db.query(Payment)
-            .filter(
-                Payment.consultation_id == consultation_id,
-                Payment.user_id == user_id,
-            )
-            .first()
-        )
+        payment = consultation.payment
 
         if payment is None:
             payment = Payment(
-                consultation_id=consultation_id,
-                patient_id=patient_id,
                 user_id=user_id,
+                patient_id=consultation.patient_id,
+                consultation_id=consultation.id,
+                amount=suggested_amount(db, consultation),
             )
             db.add(payment)
 
         payment.status = status
 
         if amount is not None:
-            payment.amount = amount
+            payment.amount = Decimal(str(amount))
 
         if payment_method is not None:
             payment.payment_method = payment_method
 
         if notes is not None:
-            payment.notes = notes
+            payment.notes = notes.strip() or None
 
-        payment.payment_date = payment_date or date.today()
+        if status == STATUS_PAGO:
+            payment.payment_date = payment_date or payment.payment_date or today()
+        else:
+            payment.payment_date = None
 
-        db.commit()
-        db.refresh(payment)
-
+        db.flush()
         return payment
-    finally:
-        db.close()
 
 
-def mark_as_paid(consultation_id, patient_id, user_id, amount, payment_method, notes=None):
-
+def mark_as_paid(consultation_id, user_id, amount, payment_method, payment_date=None, notes=None):
     return upsert_payment(
-        consultation_id=consultation_id,
-        patient_id=patient_id,
-        user_id=user_id,
-        status=STATUS_PAGO,
-        amount=amount,
-        payment_method=payment_method,
-        notes=notes,
+        consultation_id, user_id, STATUS_PAGO,
+        amount=amount, payment_method=payment_method, payment_date=payment_date, notes=notes,
     )
 
 
-def mark_as_pending(consultation_id, patient_id, user_id, notes=None):
+def mark_as_pending(consultation_id, user_id, amount=None):
+    return upsert_payment(consultation_id, user_id, STATUS_PENDENTE, amount=amount)
 
-    return upsert_payment(
-        consultation_id=consultation_id,
-        patient_id=patient_id,
-        user_id=user_id,
-        status=STATUS_PENDENTE,
-        notes=notes,
-    )
+
+def financial_rows(user_id, start, end):
+    """
+    Linhas do financeiro de um período: todas as consultas (exceto
+    canceladas) com o valor e a situação do pagamento.
+    """
+
+    with session_scope() as db:
+        consultations = db.scalars(
+            select(Consultation)
+            .options(joinedload(Consultation.patient), joinedload(Consultation.payment))
+            .where(
+                Consultation.user_id == user_id,
+                Consultation.date >= start,
+                Consultation.date <= end,
+                Consultation.status != "Cancelada",
+            )
+            .order_by(Consultation.date, Consultation.start_time)
+        ).unique().all()
+
+        rows = []
+
+        for item in consultations:
+            payment = item.payment
+            paid = bool(payment and payment.status == STATUS_PAGO)
+
+            rows.append(
+                {
+                    "consultation_id": item.id,
+                    "date": item.date,
+                    "start_time": item.start_time,
+                    "patient": item.patient.full_name,
+                    "patient_id": item.patient_id,
+                    "status": item.status,
+                    "amount": suggested_amount(db, item),
+                    "paid": paid,
+                    "payment_method": payment.payment_method if payment else None,
+                    "payment_date": payment.payment_date if payment else None,
+                    "billable": item.status in BILLABLE_STATUSES,
+                }
+            )
+
+        return rows
+
+
+def received_between(user_id, start, end):
+    with session_scope() as db:
+        payments = db.scalars(
+            select(Payment).where(
+                Payment.user_id == user_id,
+                Payment.status == STATUS_PAGO,
+                Payment.payment_date >= start,
+                Payment.payment_date <= end,
+            )
+        ).all()
+
+        return sum((Decimal(p.amount or 0) for p in payments), Decimal("0"))
+
+
+def outstanding(user_id, patient_id=None):
+    """Consultas realizadas/faltas ainda sem pagamento (todas as datas)."""
+
+    with session_scope() as db:
+        query = (
+            select(Consultation)
+            .options(joinedload(Consultation.patient), joinedload(Consultation.payment))
+            .where(
+                Consultation.user_id == user_id,
+                Consultation.status.in_(BILLABLE_STATUSES),
+                Consultation.date <= today(),
+            )
+            .order_by(Consultation.date)
+        )
+
+        if patient_id:
+            query = query.where(Consultation.patient_id == patient_id)
+
+        items = []
+
+        for item in db.scalars(query).unique().all():
+            if item.payment and item.payment.status == STATUS_PAGO:
+                continue
+
+            items.append(
+                {
+                    "consultation_id": item.id,
+                    "date": item.date,
+                    "patient": item.patient.full_name,
+                    "patient_id": item.patient_id,
+                    "status": item.status,
+                    "amount": suggested_amount(db, item),
+                }
+            )
+
+        return items
+
+
+def patient_payment_summary(patient_id, user_id):
+    with session_scope() as db:
+        payments = db.scalars(
+            select(Payment).where(
+                Payment.patient_id == patient_id,
+                Payment.user_id == user_id,
+                Payment.status == STATUS_PAGO,
+            )
+        ).all()
+
+        total_paid = sum((Decimal(p.amount or 0) for p in payments), Decimal("0"))
+
+    pending = outstanding(user_id, patient_id=patient_id)
+
+    return {
+        "total_pago": total_paid,
+        "total_pendente": sum((row["amount"] for row in pending), Decimal("0")),
+        "sessoes_pendentes": len(pending),
+    }

@@ -1,96 +1,44 @@
+"""Estado de login guardado na sessão do Streamlit (por aba do navegador)."""
+
+import time
+
 import streamlit as st
 
-
-def initialize_session():
-
-    defaults = {
-
-        "authenticated": False,
-
-        "user": None,
-
-        "credentials": None,
-
-        "page": "dashboard",
-
-        "history": []
-
-    }
-
-    for key, value in defaults.items():
-
-        if key not in st.session_state:
-
-            st.session_state[key] = value
+from config.settings import settings
 
 
-def login_user(
-    user,
-    credentials
-):
-
+def login_user(user):
     st.session_state.authenticated = True
-
     st.session_state.user = user
-
-    st.session_state.credentials = credentials
-
-    st.session_state.page = "dashboard"
-
-    if "history" not in st.session_state:
-
-        st.session_state.history = []
-
-    st.session_state.history = [
-        "dashboard"
-    ]
+    st.session_state.last_activity = time.time()
 
 
 def logout():
-
-    keys_to_remove = [
-
-        "authenticated",
-
-        "user",
-
-        "credentials",
-
-        "page",
-
-        "history"
-
-    ]
-
-    for key in keys_to_remove:
-
-        st.session_state.pop(
-            key,
-            None
-        )
-
-    st.rerun()
+    st.session_state.clear()
 
 
 def current_user():
-
-    return st.session_state.get(
-        "user"
-    )
-
-
-def current_credentials():
-
-    return st.session_state.get(
-        "credentials"
-    )
+    return st.session_state.get("user")
 
 
 def is_authenticated():
+    if not st.session_state.get("authenticated"):
+        return False
 
-    return bool(
-        st.session_state.get(
-            "authenticated",
-            False
-        )
-    )
+    timeout = settings.SESSION_TIMEOUT_MINUTES * 60
+    last = st.session_state.get("last_activity", 0)
+
+    if timeout and time.time() - last > timeout:
+        logout()
+        st.session_state.session_expired = True
+        return False
+
+    st.session_state.last_activity = time.time()
+
+    return True
+
+
+def update_current_user(**fields):
+    user = dict(st.session_state.get("user") or {})
+    user.update(fields)
+    st.session_state.user = user

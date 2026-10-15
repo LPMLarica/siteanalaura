@@ -1,114 +1,87 @@
-from dados.database import SessionLocal
+from sqlalchemy import select
+
+from dados.database import session_scope
 from dados.models import User
+
+
+def _as_dict(user):
+    return {
+        "id": user.id,
+        "name": user.name,
+        "email": user.email,
+        "professional_register": user.professional_register,
+        "phone": user.phone,
+        "default_session_minutes": user.default_session_minutes,
+        "default_session_value": user.default_session_value,
+        "active": user.active,
+    }
 
 
 def get_or_create_user(data):
     """
-    Busca um usuário local pelo ID do Supabase Auth (supabase_uid) ou
-    pelo e-mail. Se não existir, cria um novo usuário local
-    correlacionado à conta do Supabase.
-
-    Espera receber um dicionário contendo:
-
-        supabase_uid
-        name
-        email
+    Busca o usuário local pelo ID do Supabase Auth (ou pelo e-mail, para
+    correlacionar contas antigas) e cria se ainda não existir.
     """
 
-    if not data:
-        raise ValueError(
-            "Dados do usuário não foram fornecidos."
-        )
+    supabase_uid = (data or {}).get("supabase_uid")
+    email = ((data or {}).get("email") or "").lower()
 
-    supabase_uid = data.get("supabase_uid")
-    email = data.get("email")
+    if not supabase_uid or not email:
+        raise ValueError("Dados do usuário incompletos.")
 
-    if not supabase_uid:
-        raise ValueError(
-            "ID do usuário (Supabase) não foi encontrado."
-        )
+    with session_scope() as db:
+        user = db.scalar(select(User).where(User.supabase_uid == supabase_uid))
 
-    if not email:
-        raise ValueError(
-            "E-mail do usuário não foi encontrado."
-        )
+        if user is None:
+            user = db.scalar(select(User).where(User.email == email))
 
-    db = SessionLocal()
+            if user is not None:
+                user.supabase_uid = supabase_uid
 
-    try:
-
-        user = (
-            db.query(User)
-            .filter(
-                User.supabase_uid == supabase_uid
+        if user is None:
+            user = User(
+                supabase_uid=supabase_uid,
+                email=email,
+                name=data.get("name") or email.split("@")[0],
+                active=True,
             )
-            .first()
-        )
-
-        if user:
-            user.name = data.get(
-                "name",
-                user.name
-            )
-
+            db.add(user)
+        else:
             user.email = email
 
-            db.commit()
+            if not user.name and data.get("name"):
+                user.name = data["name"]
 
-            db.refresh(user)
+        db.flush()
 
-            return user
+        return _as_dict(user)
 
-        # Fallback: pode existir um usuário local antigo com o mesmo
-        # e-mail (ex.: uma conta criada antes da migração para o
-        # Supabase Auth) — correlaciona em vez de duplicar.
-        user = (
-            db.query(User)
-            .filter(
-                User.email == email
-            )
-            .first()
-        )
 
-        if user:
+def get_user(user_id):
+    with session_scope() as db:
+        user = db.get(User, user_id)
+        return _as_dict(user) if user else None
 
-            user.supabase_uid = supabase_uid
 
-            user.name = data.get(
-                "name",
-                user.name
-            )
+def update_profile(user_id, **fields):
+    allowed = {
+        "name",
+        "professional_register",
+        "phone",
+        "default_session_minutes",
+        "default_session_value",
+    }
 
-            db.commit()
+    with session_scope() as db:
+        user = db.get(User, user_id)
 
-            db.refresh(user)
+        if user is None:
+            return None
 
-            return user
+        for key, value in fields.items():
+            if key in allowed:
+                setattr(user, key, value)
 
-        user = User(
-            supabase_uid=supabase_uid,
-            name=data.get(
-                "name",
-                "Usuário"
-            ),
-            email=email,
-            active=True
-        )
+        db.flush()
 
-        db.add(user)
-
-        db.commit()
-
-        db.refresh(user)
-
-        return user
-
-    except Exception:
-
-        db.rollback()
-
-        raise
-
-    finally:
-
-        db.close()
+        return _as_dict(user)
