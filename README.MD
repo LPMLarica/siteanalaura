@@ -74,7 +74,7 @@ Valores dos secrets:
 Ajustes em **Authentication** (uma vez só):
 
 - **URL Configuration → Site URL**: o endereço do app publicado
-  (ex.: `https://agenda-analaura.streamlit.app`) — é para onde aponta o
+  (ex.: `https://agendapsiana.streamlit.app`) — é para onde aponta o
   link de confirmação de e-mail.
 - **Emails → Templates → Reset Password**: inclua o código no corpo, por
   exemplo `<p>Seu código: <strong>{{ .Token }}</strong></p>` (a tela
