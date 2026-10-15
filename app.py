@@ -17,7 +17,7 @@ st.set_page_config(
 inject_css()
 
 
-# --------------------------------------------------- configuração e banco
+# configuração e banco
 
 
 def _setup_problem(title, items):
@@ -76,7 +76,7 @@ if db_error:
     )
 
 
-# ------------------------------------------------------------ autenticação
+# autenticação
 
 from auth.session import is_authenticated  # noqa: E402
 from components.sidebar import sidebar_brand, sidebar_footer  # noqa: E402
@@ -94,7 +94,7 @@ if not is_authenticated():
     st.stop()
 
 
-# --------------------------------------------------------------- navegação
+# navegação
 
 pages = {
     "dashboard": st.Page(dashboard, title="Início", icon=":material/home:", url_path="inicio", default=True),
