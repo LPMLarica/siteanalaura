@@ -74,12 +74,28 @@ def financeiro():
 
         st.caption("Clique em uma linha para registrar ou alterar o pagamento.")
 
-        event = st.dataframe(
+        # A seleção de linha fica guardada no navegador; se a tabela não
+        # for recriada, cada recarga reabriria o diálogo sem parar. Por isso
+        # o clique só registra qual consulta abrir e troca a chave da
+        # tabela, que volta sem nenhuma linha selecionada.
+        version = st.session_state.get("fin_table_version", 0)
+        table_key = f"fin_table_{month_start}_{version}"
+        consultation_ids = [r["consultation_id"] for r in rows]
+
+        def _on_select():
+            state = st.session_state.get(table_key)
+            picked = state.selection.rows if state and state.selection else []
+
+            if picked:
+                st.session_state["fin_open_consultation"] = consultation_ids[picked[0]]
+                st.session_state["fin_table_version"] = version + 1
+
+        st.dataframe(
             frame,
             hide_index=True,
-            on_select="rerun",
+            on_select=_on_select,
             selection_mode="single-row",
-            key=f"fin_table_{month_start}",
+            key=table_key,
             column_config={
                 "Data": st.column_config.DateColumn(format="DD/MM/YYYY"),
                 "Pago em": st.column_config.DateColumn(format="DD/MM/YYYY"),
@@ -88,11 +104,10 @@ def financeiro():
             placeholder="",
         )
 
-        selected = event.selection.rows if event and event.selection else []
+        to_open = st.session_state.pop("fin_open_consultation", None)
 
-        if selected:
-            st.session_state.pop(f"fin_table_{month_start}", None)
-            consultation_dialog(rows[selected[0]]["consultation_id"])
+        if to_open:
+            consultation_dialog(to_open)
 
         export = frame.copy()
         export["Data"] = export["Data"].map(fmt_date)
